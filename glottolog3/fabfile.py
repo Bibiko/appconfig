@@ -1,3 +1,3 @@
 from pyappconfig import tasks
 
-tasks.init('cobl')
+tasks.init('glottolog3')

@@ -1,3 +1,5 @@
+# tasks.py
+
 """
 fabric tasks
 ------------
@@ -10,10 +12,7 @@ and run the init function, passing an app name defined in the global clld app co
 """
 from fabric.api import task, hosts, execute, env
 
-from pyappconfig import config
-from pyappconfig import util
-from pyappconfig import varnish
-
+from pyappconfig import config, util, varnish
 
 APP = None
 

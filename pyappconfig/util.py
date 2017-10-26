@@ -1,5 +1,6 @@
-"""Deployment utilities for clld apps."""
+# util.py - deployment utilities for clld apps
 # flake8: noqa
+
 import time
 import json
 from getpass import getpass
@@ -8,28 +9,21 @@ from datetime import datetime, timedelta
 from importlib import import_module
 import contextlib
 
-from six.moves import input
+from pyappconfig._compat import input, pathlib
 
 from pytz import timezone, utc
 from fabric.api import sudo, run, local, env, cd, task, execute, settings
 from fabric.contrib.console import confirm
 from fabric.contrib.files import exists
-from fabtools import require
+from fabtools import require, service, postgres
 from fabtools.files import upload_template
 from fabtools.python import virtualenv
-from fabtools import service
-from fabtools import postgres
-from clldutils.path import Path
+
+from pyappconfig import TEMPLATE_DIR
 
 # we prevent the tasks defined here from showing up in fab --list, because we only
 # want the wrapped version imported from clldfabric.tasks to be listed.
 __all__ = []
-
-REPOS_DIR = Path(__file__).parent.parent
-PKG_DIR = Path(__file__).parent
-TEMPLATE_DIR = PKG_DIR.joinpath('templates')
-
-env.use_ssh_config = True
 
 
 def get_input(prompt):
@@ -179,7 +173,7 @@ def copy_rdfdump(app):
 def copy_downloads(app, pattern='*'):
     dl_dir = app.src.joinpath(app.name, 'static', 'download')
     require.files.directory(dl_dir, use_sudo=True, mode="777")
-    local_dl_dir = Path(import_module(app.name).__file__).parent.joinpath('static', 'download')
+    local_dl_dir = pathlib.Path(import_module(app.name).__file__).parent.joinpath('static', 'download')
     for f in local_dl_dir.glob(pattern):
         target = dl_dir.joinpath(f.name)
         create_file_as_root(target, open(f.as_posix()).read())
@@ -361,17 +355,25 @@ def deploy(app, environment, with_alembic=False, with_blog=False, with_files=Tru
 @task
 def pipfreeze(app, environment):
     with virtualenv(app.venv):
-        with open('requirements.txt', 'w') as fp:
-            for line in sudo('pip freeze').splitlines():
-                if '%s.git' % app.name in line:
-                    continue
-                if line.split('==')[0].lower() in ['fabric', 'pyx', 'fabtools', 'paramiko', 'pycrypto', 'babel']:
-                    continue
-                if 'clld.git' in line:
-                    line = 'clld'
-                if 'clldmpg.git' in line:
-                    line = 'clldmpg'
-                fp.write(line+ '\n')
+        stdout = run('pip freeze')
+
+    def iterlines(lines):
+        warning = ('\x1b[33m', 'You should ')
+        app_git = '%s.git' % app.name.lower()
+        ignore={'babel', 'fabric', 'fabtools', 'paramiko', 'pycrypto', 'pyx'}
+        for line in lines:
+            if line.startswith(warning): 
+                continue  # https://github.com/pypa/pip/issues/2470
+            elif app_git in line or line.partition('==')[0].lower() in ignore:
+                continue
+            elif 'clld.git' in line:
+                line = 'clld'
+            elif 'clldmpg.git' in line:
+                line = 'clldmpg'
+            yield line + '\n'
+
+    with open('requirements.txt', 'w') as fp:
+        fp.writelines(iterlines(stdout.splitlines()))
 
 
 @task

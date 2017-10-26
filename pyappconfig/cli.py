@@ -1,10 +1,12 @@
-# coding: utf8
-from __future__ import unicode_literals, print_function, division
+# cli.py - command line interface
+
+from __future__ import unicode_literals
+
 import sys
 
 from clldutils.clilib import ArgumentParserWithLogging, command
 
-from pyappconfig.util import REPOS_DIR
+from pyappconfig import REPOS_DIR
 
 
 @command()
