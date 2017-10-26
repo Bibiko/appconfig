@@ -5,13 +5,15 @@ fabric tasks
 ------------
 
 We use the following mechanism to provide common task implementations for all clld apps:
-This module defines and exports tasks which are run on localhost and take a first argument
-"environment". The environment is used to determine the correct host to run the actual
-task on. To connect tasks to a certain app, the app's fabfile needs to import this module
+This module defines and exports tasks which take a first argument "environment".
+The environment is used to determine the correct host to run the actual task on.
+To connect tasks to a certain app, the app's fabfile needs to import this module
 and run the init function, passing an app name defined in the global clld app config.
 """
 
 from __future__ import unicode_literals
+
+import functools
 
 from fabric.api import task, hosts, execute, env
 
@@ -37,12 +39,17 @@ def init(app_name=None):
     APP = config.APPS[app_name]
 
 
-def _assign_host(environment):
-    assert environment in ['production', 'test']
-    if not env.hosts:
-        # This allows overriding the configured hosts by explicitly passing a host for
-        # the task using fab's -H option.
-        env.hosts = [getattr(APP, environment)]
+def task_host_from_environment(func):
+    @functools.wraps(func)
+    def wrapper(environment='production', *args, **kwargs):
+        assert environment in ['production', 'test']
+        if not env.hosts:
+            # This allows overriding the configured hosts by explicitly passing a host for
+            # the task using fab's -H option.
+            env.hosts = [getattr(APP, environment)]
+        env.environment = environment
+        execute(func, APP, *args, **kwargs)
+    return task(wrapper)
 
 
 @task
@@ -50,113 +57,77 @@ def bootstrap():
     _tasks.bootstrap()  # pragma: no cover
 
 
-@hosts('localhost')
-@task
-def stop(environment):
-    """stop app by changing the supervisord config
-    """
-    _assign_host(environment)
-    execute(_tasks.supervisor, APP, 'pause')
+@task_host_from_environment
+def stop(app):
+    """stop app by changing the supervisord config"""
+    execute(_tasks.supervisor, app, 'pause')
 
 
-@hosts('localhost')
-@task
-def start(environment):
-    """start app by changing the supervisord config
-    """
-    _assign_host(environment)
-    execute(_tasks.supervisor, APP, 'run')
+@task_host_from_environment
+def start(app):
+    """start app by changing the supervisord config"""
+    execute(_tasks.supervisor, app, 'run')
 
 
-@hosts('localhost')
-@task
-def cache():
-    """
-    """
-    _assign_host('production')
-    execute(varnish.cache, APP)
+@task_host_from_environment
+def cache(app):
+    """"""
+    execute(varnish.cache, app)
 
 
-@hosts('localhost')
-@task
-def uncache():
-    """
-    """
-    _assign_host('production')
-    execute(varnish.uncache, APP)
+@task_host_from_environment
+def uncache(app):
+    execute(varnish.uncache, app)
 
 
-@hosts('localhost')
-@task
-def maintenance(environment, hours=2):
+@task_host_from_environment
+def maintenance(app, hours=2):
     """create a maintenance page giving a date when we expect the service will be back
 
     :param hours: Number of hours we expect the downtime to last.
     """
-    _assign_host(environment)
-    execute(_tasks.maintenance, APP, hours=hours)
+    execute(_tasks.maintenance, app, hours=hours)
 
 
-@hosts('localhost')
-@task
-def deploy(environment, with_blog=False):
-    """deploy the app
-    """
-    _assign_host(environment)
+@task_host_from_environment
+def deploy(app, with_blog=False, **kwargs):
+    """deploy the app"""
     if not with_blog:
-        with_blog = getattr(APP, 'with_blog', False)
-    execute(_tasks.deploy, APP, environment, with_blog=with_blog)
+        with_blog = getattr(app, 'with_blog', False)
+    execute(_tasks.deploy, app, env.environment, with_blog=with_blog, **kwargs)
 
 
-@hosts('localhost')
-@task
-def pipfreeze(environment):
-    """get installed versions
-    """
-    _assign_host(environment)
-    execute(_tasks.pipfreeze, APP, environment)
+@task_host_from_environment
+def pipfreeze(app):
+    """get installed versions"""
+    execute(_tasks.pipfreeze, app)
 
 
-@hosts('localhost')
-@task
-def uninstall(environment):
-    """uninstall the app
-    """
-    _assign_host(environment)
-    execute(_tasks.uninstall, APP)
+@task_host_from_environment
+def uninstall(app):
+    """uninstall the app"""
+    execute(_tasks.uninstall, app)
 
 
-@hosts('localhost')
-@task
-def create_downloads(environment):
-    """create all configured downloads
-    """
-    _assign_host(environment)
-    execute(_tasks.create_downloads, APP)
+@task_host_from_environment
+def create_downloads(app):
+    """create all configured downloads"""
+    execute(_tasks.create_downloads, app)
 
 
-@hosts('localhost')
-@task
-def copy_downloads(environment):
-    """copy downloads for the app
-    """
-    _assign_host(environment)
-    execute(_tasks.copy_downloads, APP)
+@task_host_from_environment
+def copy_downloads(app):
+    """copy downloads for the app"""
+    execute(_tasks.copy_downloads, app)
 
 
-@hosts('localhost')
-@task
-def copy_rdfdump(environment):
-    """copy rdfdump for the app
-    """
-    _assign_host(environment)
-    execute(_tasks.copy_rdfdump, APP)
+@task_host_from_environment
+def copy_rdfdump(app):
+    """copy rdfdump for the app"""
+    execute(_tasks.copy_rdfdump, app)
 
 
-@hosts('localhost')
-@task
-def run_script(environment, script_name, *args):
-    """
-    """
-    _assign_host(environment)
-    execute(_tasks.run_script, APP, script_name, *args)
+@task_host_from_environment
+def run_script(app, script_name, *args):
+    """"""
+    execute(_tasks.run_script, app, script_name, *args)

@@ -20,10 +20,6 @@ from fabtools.python import virtualenv
 
 from pyappconfig import TEMPLATE_DIR, PKG_DIR
 
-# we prevent the tasks defined here from showing up in fab --list, because we only
-# want the wrapped version imported from clldfabric.tasks to be listed.
-__all__ = []
-
 
 def get_input(prompt):
     return input(prompt)
@@ -69,7 +65,6 @@ def get_template_variables(app, monitor_mode=False, with_blog=False):
     return res
 
 
-@task
 def supervisor(app, command, template_variables=None):
     """
     .. seealso: http://serverfault.com/a/479754
@@ -111,7 +106,6 @@ def require_bibutils(app):  # pragma: no cover
             sudo('make install')
 
 
-@task
 def uninstall(app):  # pragma: no cover
     for file_ in [app.supervisor, app.nginx_location, app.nginx_site]:
         file_ = str(file_)
@@ -121,7 +115,6 @@ def uninstall(app):  # pragma: no cover
     sudo('supervisorctl stop %s' % app.name)
 
 
-@task
 def maintenance(app, hours=2, template_variables=None):
     """turn maintenance mode on|off
     """
@@ -155,12 +148,10 @@ def http_auth(app):
         auth_basic_user_file %s;""" % (app.name, app.nginx_htpasswd)
 
 
-@task
 def copy_rdfdump(app):
     execute(copy_downloads(app, pattern='*.n3.gz'))
 
 
-@task
 def copy_downloads(app, pattern='*'):
     dl_dir = app.src.joinpath(app.name, 'static', 'download')
     require.files.directory(dl_dir, use_sudo=True, mode="777")
@@ -180,7 +171,6 @@ def init_pg_collkey(app):
     sudo('sudo -u postgres psql -f /tmp/collkey_icu.sql -d {0.name}'.format(app))
 
 
-@task
 def deploy(app, environment, with_alembic=False, with_blog=False, with_files=True):
     with settings(warn_only=True):
         lsb_release = run('lsb_release -a')
@@ -337,8 +327,7 @@ def deploy(app, environment, with_alembic=False, with_blog=False, with_files=Tru
     assert json.loads(res)['status'] == 'ok'
 
 
-@task
-def pipfreeze(app, environment):
+def pipfreeze(app):
     with virtualenv(app.venv):
         stdout = run('pip freeze')
 
@@ -361,7 +350,6 @@ def pipfreeze(app, environment):
         fp.writelines(iterlines(stdout.splitlines()))
 
 
-@task
 def run_script(app, script_name, *args):  # pragma: no cover
     with cd(str(app.home)):
         sudo(
@@ -375,7 +363,6 @@ def run_script(app, script_name, *args):  # pragma: no cover
             user=app.name)
 
 
-@task
 def create_downloads(app):  # pragma: no cover
     dl_dir = app.src.joinpath(app.name, 'static', 'download')
     require.files.directory(dl_dir, use_sudo=True, mode="777")
