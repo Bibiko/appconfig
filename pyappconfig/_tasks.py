@@ -1,4 +1,4 @@
-# util.py - deployment utilities for clld apps
+# _tasks.py - deployment utilities for clld apps
 # flake8: noqa
 
 import time
@@ -7,7 +7,6 @@ from getpass import getpass
 import os
 from datetime import datetime, timedelta
 from importlib import import_module
-import contextlib
 
 from pyappconfig._compat import input, pathlib
 
@@ -28,19 +27,6 @@ __all__ = []
 
 def get_input(prompt):
     return input(prompt)
-
-
-@contextlib.contextmanager
-def working_directory(path):
-    """A context manager which changes the working directory to the given
-    path, and then changes it back to its previous value on exit.
-    """
-    prev_cwd = os.getcwd()
-    os.chdir(path)
-    try:
-        yield
-    finally:
-        os.chdir(prev_cwd)
 
 
 def upload_template_as_root(dest, template, context=None, mode=None, owner='root'):
@@ -360,7 +346,7 @@ def pipfreeze(app, environment):
     def iterlines(lines):
         warning = ('\x1b[33m', 'You should ')
         app_git = '%s.git' % app.name.lower()
-        ignore={'babel', 'fabric', 'fabtools', 'paramiko', 'pycrypto', 'pyx'}
+        ignore={'babel', 'fabric', 'fabtools', 'newrelic', 'paramiko', 'pycrypto', 'pyx'}
         for line in lines:
             if line.startswith(warning): 
                 continue  # https://github.com/pypa/pip/issues/2470

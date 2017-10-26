@@ -1,4 +1,4 @@
-# config.py - load apps.ini and servers.ini into name/object dicts
+# config.py - load apps.ini and hosts.ini into name/object dicts
 
 """Configuration of DLCE apps.
 
@@ -14,32 +14,29 @@ from pyappconfig._compat import pathlib
 
 import attr
 
-from clldutils.inifile import INI
+from clldutils import inifile
 
 from pyappconfig import REPOS_DIR
 
-
-RemotePath = pathlib.PurePosixPath
+__all__ = ['APPS', 'HOSTS']
 
 
 class Config(dict):
 
     def __init__(self, cls, filename):
-        parser = INI.from_file(filename)
+        parser = inifile.INI.from_file(filename)
         objs = [cls(name=section, **dict(parser.items(section)))
                 for section in parser.sections()]
         super(Config, self).__init__((obj.name, obj) for obj in objs)
 
 
-@attr.s
-class Server(object):
-
-    name = attr.ib()
-    hostname = attr.ib()
+RemotePath = pathlib.PurePosixPath
 
 
 @attr.s
 class App(object):
+
+    _filename = REPOS_DIR / 'apps.ini'
 
     name = attr.ib()
     port = attr.ib(convert=int)
@@ -50,9 +47,9 @@ class App(object):
     workers = attr.ib(convert=int, default=3)
     require_deb = attr.ib(convert=lambda s: s.strip().split(), default=attr.Factory(list))
     require_pip = attr.ib(convert=lambda s: s.strip().split(), default=attr.Factory(list))
-    with_blog = attr.ib(convert=lambda s: INI.BOOLEAN_STATES[s.lower()], default='0')
-    pg_collkey = attr.ib(convert=lambda s: INI.BOOLEAN_STATES[s.lower()], default='0')
-    pg_unaccent = attr.ib(convert=lambda s: INI.BOOLEAN_STATES[s.lower()], default='0')
+    with_blog = attr.ib(convert=lambda s: inifile.INI.BOOLEAN_STATES[s.lower()], default='0')
+    pg_collkey = attr.ib(convert=lambda s: inifile.INI.BOOLEAN_STATES[s.lower()], default='0')
+    pg_unaccent = attr.ib(convert=lambda s: inifile.INI.BOOLEAN_STATES[s.lower()], default='0')
     error_email = attr.ib(default='lingweb@shh.mpg.de')
 
     @property
@@ -119,6 +116,13 @@ class App(object):
         return 'postgresql://{0}@/{0}'.format(self.name)
 
 
-APPS = Config(App, REPOS_DIR / 'apps.ini')
+@attr.s
+class Host(object):
 
-SERVERS = Config(Server, REPOS_DIR / 'servers.ini')
+    _filename = REPOS_DIR / 'hosts.ini'
+
+    name = attr.ib()
+    hostname = attr.ib()
+
+
+APPS, HOSTS = (Config(cls, cls._filename) for cls in (App, Host))

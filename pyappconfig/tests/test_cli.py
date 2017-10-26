@@ -1,5 +1,6 @@
-# coding: utf8
-from __future__ import unicode_literals, print_function, division
+# test_cli.py
+
+from __future__ import unicode_literals
 
 
 def test_check():

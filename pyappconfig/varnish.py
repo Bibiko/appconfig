@@ -16,7 +16,7 @@ from fabric.contrib.files import append, exists
 from fabtools import require
 from fabtools import service
 
-from pyappconfig.util import (
+from pyappconfig._tasks import (
     create_file_as_root, upload_template_as_root, get_template_variables, http_auth,
 )
 from pyappconfig.config import App

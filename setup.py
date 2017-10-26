@@ -29,8 +29,7 @@ setup(
         'Programming Language :: Python :: 3',
         'Programming Language :: Python :: 3.4',
     ],
-    tests_require=['pytest', 'pytest-cov', 'mock'],
-    test_suite="pyappconfig",
+    tests_require=['pytest', 'pytest-mock', 'pytest-cov'],
     entry_points={
         'console_scripts': ['appconfig=pyappconfig.cli:main'],
     },

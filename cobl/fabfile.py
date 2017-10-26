@@ -1,3 +1,3 @@
-from pyappconfig import tasks
+from pyappconfig.tasks import *
 
-tasks.init('cobl')
+init()

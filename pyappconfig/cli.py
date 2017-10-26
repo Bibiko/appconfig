@@ -11,16 +11,16 @@ from pyappconfig import REPOS_DIR
 
 @command()
 def check(args):  # pragma: no cover
-    from pyappconfig.config import APPS, SERVERS
+    from pyappconfig.config import APPS, HOSTS
 
     ports = set()
     for app in APPS.values():
         if app.port in ports:
             args.log.error('{0}: Duplicate port: {1}'.format(app.name, app.port))
         ports.add(app.port)
-        if app.test not in SERVERS:
+        if app.test not in HOSTS:
             args.log.error('{0}: invalid test server: {1}'.format(app.name, app.test))
-        if app.production not in SERVERS:
+        if app.production not in HOSTS:
             args.log.error(
                 '{0}: invalid production server: {1}'.format(app.name, app.production))
         if not REPOS_DIR.joinpath(app.name).exists():
