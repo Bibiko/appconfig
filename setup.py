@@ -1,30 +1,30 @@
-import sys
 from setuptools import setup, find_packages
 
-requires = [
-    'Fabric3',
-    'fabtools-python==0.19.7',
-    'Jinja2',
-    'pytz',
-]
-if sys.version_info.major == 2:
-    requires.append('pathlib2')
-
-setup(name='pyappconfig',
-      version='0.0',
-      description='Remote control for DLCE apps',
-      long_description='',
-      classifiers=[
-        "Programming Language :: Python",
-        ],
-      author='',
-      author_email='lingweb@shh.mpg.de',
-      url='',
-      keywords='fabric',
-      packages=find_packages(),
-      include_package_data=True,
-      zip_safe=False,
-      install_requires=requires,
-      tests_require=requires,
-      test_suite="pyappconfig",
+setup(
+    name='pyappconfig',
+    version='0.0',
+    author='',
+    author_email='lingweb@shh.mpg.de',
+    description='Remote control for DLCE apps',
+    keywords='fabric',
+    url='',
+    packages=find_packages(),
+    include_package_data=True,
+    zip_safe=False,
+    install_requires=[
+        'Fabric3',
+        'fabtools-python==0.19.7',
+        'Jinja2',
+        'pathlib2; python_version < "3"',
+        'pytz',
+      ],
+    platforms='any',
+    long_description='',
+    classifiers=[
+        'Private :: Do Not Upload',
+        'Programming Language :: Python :: 2',
+        'Programming Language :: Python :: 2.7',
+        'Programming Language :: Python :: 3',
+        'Programming Language :: Python :: 3.4',
+    ],
 )
