@@ -4,14 +4,11 @@ import pytest
 
 from pyappconfig._compat import pathlib
 
-FIXTURES = pathlib.Path(__file__) / '..' / 'fixtures'
+FIXTURES = pathlib.Path(__file__).parent / 'fixtures'
 
 
 @pytest.fixture
 def app(name='testapp'):
     from pyappconfig.config import Config, App
 
-    filename = FIXTURES / 'apps.ini'
-    apps = Config(App, filename)
-
-    return apps[name]
+    return Config(App, FIXTURES / 'apps.ini')[name]

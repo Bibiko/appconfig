@@ -39,7 +39,10 @@ def init(app_name=None):
 
 def _assign_host(environment):
     assert environment in ['production', 'test']
-    env.hosts = [getattr(APP, environment)]
+    if not env.hosts:
+        # This allows overriding the configured hosts by explicitly passing a host for
+        # the task using fab's -H option.
+        env.hosts = [getattr(APP, environment)]
 
 
 @task

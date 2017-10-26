@@ -18,7 +18,7 @@ from fabtools import require, service, postgres
 from fabtools.files import upload_template
 from fabtools.python import virtualenv
 
-from pyappconfig import TEMPLATE_DIR
+from pyappconfig import TEMPLATE_DIR, PKG_DIR
 
 # we prevent the tasks defined here from showing up in fab --list, because we only
 # want the wrapped version imported from clldfabric.tasks to be listed.
@@ -98,8 +98,13 @@ def require_bibutils(app):  # pragma: no cover
     sudo make install
     """
     if not exists('/usr/local/bin/bib2xml'):
-        tgz = str(app.venv.joinpath('src', 'clld', 'tools', 'bibutils_5.0_src.tgz'))
-        sudo('tar -xzvf {tgz} -C {app.home}'.format(tgz=tgz, app=app))
+        target = '/tmp/bibutils_5.0_src.tgz'
+        require.files.file(
+            target,
+            source=(PKG_DIR / 'bibutils' / 'bibutils_5.0_src.tgz').as_posix(),
+            use_sudo=True)
+
+        sudo('tar -xzvf {tgz} -C {app.home}'.format(tgz=target, app=app))
         with cd(str(app.home.joinpath('bibutils_5.0'))):
             sudo('./configure')
             sudo('make')
@@ -179,7 +184,7 @@ def init_pg_collkey(app):
 def deploy(app, environment, with_alembic=False, with_blog=False, with_files=True):
     with settings(warn_only=True):
         lsb_release = run('lsb_release -a')
-    for codename in ['trusty', 'precise']:
+    for codename in ['trusty', 'precise', 'xenial']:
         if codename in lsb_release:
             lsb_release = codename
             break
@@ -197,8 +202,9 @@ def deploy(app, environment, with_alembic=False, with_blog=False, with_files=Tru
         with_blog=with_blog)
 
     require.users.user(app.name, shell='/bin/bash')
-    require.postfix.server(env['host'])
+    #require.postfix.server(env['host'])
     require.postgres.server()
+    require.deb.package('default-jre' if lsb_release == 'xenial' else 'openjdk-6-jre')
     require.deb.packages(app.require_deb)
     require.postgres.user(app.name, app.name)
     require.postgres.database(app.name, app.name)
@@ -279,13 +285,6 @@ def deploy(app, environment, with_alembic=False, with_blog=False, with_files=Tru
 
     maintenance(app, hours=app.deploy_duration, template_variables=template_variables)
     service.reload('nginx')
-
-    #
-    # TODO: replace with initialization of db from data repos!
-    #
-    if with_files:
-        if confirm('Copy files?', default=False):
-            execute(copy_files, app)
 
     if not with_alembic and confirm('Recreate database?', default=False):
         db_name = get_input('from db [{0.name}]: '.format(app))
