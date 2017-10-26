@@ -8,9 +8,10 @@ from datetime import datetime, timedelta
 from importlib import import_module
 import contextlib
 
-from pytz import timezone, utc
+from six.moves import input
 
-from fabric.api import sudo, run, local, put, env, cd, task, execute, settings
+from pytz import timezone, utc
+from fabric.api import sudo, run, local, env, cd, task, execute, settings
 from fabric.contrib.console import confirm
 from fabric.contrib.files import exists
 from fabtools import require
@@ -20,19 +21,19 @@ from fabtools import service
 from fabtools import postgres
 from clldutils.path import Path
 
-from clld.scripts.util import data_file
-
 # we prevent the tasks defined here from showing up in fab --list, because we only
 # want the wrapped version imported from clldfabric.tasks to be listed.
 __all__ = []
 
-TEMPLATE_DIR = os.path.join(os.path.dirname(__file__), 'templates')
+REPOS_DIR = Path(__file__).parent.parent
+PKG_DIR = Path(__file__).parent
+TEMPLATE_DIR = PKG_DIR.joinpath('templates')
 
 env.use_ssh_config = True
 
 
 def get_input(prompt):
-    return raw_input(prompt)
+    return input(prompt)
 
 
 @contextlib.contextmanager
@@ -63,15 +64,10 @@ def create_file_as_root(path, content, **kw):
 
 
 def get_template_variables(app, monitor_mode=False, with_blog=False):
-    if monitor_mode and not os.environ.get('NEWRELIC_API_KEY'):
-        print('--> Warning: no newrelic api key found in environment')  # pragma: no cover
-
     res = dict(
         app=app,
         env=env,
-        newrelic_api_key=os.environ.get('NEWRELIC_API_KEY'),
         gunicorn=app.bin('gunicorn_paster'),
-        newrelic=app.bin('newrelic-admin'),
         monitor_mode=monitor_mode,
         auth='',
         bloghost='',
@@ -175,28 +171,6 @@ def http_auth(app):
 
 
 @task
-def copy_files(app):
-    data_dir = data_file(import_module(app.name))
-    tarball = '/tmp/%s-files.tgz' % app.name
-    local('tar -C %s -czf %s files' % (data_dir, tarball))
-    require.files.file(tarball, source=tarball)
-    if os.path.exists(tarball):
-        os.remove(tarball)  # pragma: no cover
-    with cd('/tmp'):
-        tarfile = tarball.split('/')[2]
-        sudo('tar -xzf %s' % tarfile)
-        target = app.www.joinpath('files')
-        if exists(target):
-            sudo('cp -ru files/* %s' % target)
-            sudo('rm -rf files')
-        else:
-            sudo('mv files %s' % app.www)  # pragma: no cover
-        sudo('chown -R root:root %s' % target)
-        sudo('rm %s' % tarfile)
-        sudo('tree %s' % app.www)
-
-
-@task
 def copy_rdfdump(app):
     execute(copy_downloads(app, pattern='*.n3.gz'))
 
@@ -283,10 +257,6 @@ def deploy(app, environment, with_alembic=False, with_blog=False, with_files=Tru
             sudo('virtualenv -q --python=python3 %s' % app.venv)
 
     require.files.directory(str(app.logs), use_sudo=True)
-
-    if app.pages and not exists(str(app.pages)):
-        with cd(str(app.home)):
-            sudo('sudo -u {0} git clone https://github.com/clld/{0}-pages.git'.format(app.name))
 
     with virtualenv(str(app.venv)):
         require.python.pip('6.0.6')
@@ -380,7 +350,6 @@ def deploy(app, environment, with_alembic=False, with_blog=False, with_files=Tru
     if exists(app.www.joinpath('files')):
         template_variables['files'] = app.www.joinpath('files')
     upload_template_as_root(app.config, 'config.ini', template_variables)
-    upload_template_as_root(app.newrelic_config, 'newrelic.ini', template_variables)
 
     supervisor(app, 'run', template_variables)
 
@@ -428,19 +397,6 @@ def create_downloads(app):  # pragma: no cover
     require.files.directory(dl_dir, use_sudo=True, mode="755")
 
 
-def bootstrap(nr='y'):  # pragma: no cover
+def bootstrap():  # pragma: no cover
     for pkg in 'vim tree nginx open-vm-tools'.split():
         require.deb.package(pkg)
-
-    sudo('/etc/init.d/nginx start')
-
-    if nr == 'y':
-        for cmd in [
-            'wget -O /etc/apt/sources.list.d/newrelic.list http://download.newrelic.com/debian/newrelic.list',
-            'apt-key adv --keyserver hkp://subkeys.pgp.net --recv-keys 548C16BF',
-            'apt-get update',
-            'apt-get install newrelic-sysmond',
-            'nrsysmond-config --set license_key=%s' % os.environ['NEWRELIC_API_KEY'],
-            '/etc/init.d/newrelic-sysmond start',
-        ]:
-            sudo(cmd)

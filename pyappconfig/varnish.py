@@ -16,10 +16,10 @@ from fabric.contrib.files import append, exists
 from fabtools import require
 from fabtools import service
 
-from clldfabric.util import (
+from pyappconfig.util import (
     create_file_as_root, upload_template_as_root, get_template_variables, http_auth,
 )
-from clldfabric.config import App
+from pyappconfig.config import App
 
 
 DEFAULT = """
@@ -92,5 +92,5 @@ def cache(app):  # pragma: no cover
 def uncache(app):  # pragma: no cover
     tv = get_template_variables(app)
     tv['auth'] = http_auth(app)
-    create_file_as_root(app.nginx_site, SITE_TEMPLATE.format(**tv))
+    create_file_as_root(app.nginx_site, SITE_VCL_TEMPLATE.format(**tv))
     service.reload('nginx')

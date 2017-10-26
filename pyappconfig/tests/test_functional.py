@@ -2,7 +2,13 @@ from mock import Mock, MagicMock, patch
 from clldutils.path import Path
 
 
-@patch.multiple('clldfabric.util',
+def _make_app(name='testapp'):
+    from pyappconfig.config import Config, App
+
+    return Config(App, Path(__file__).parent.joinpath('fixtures', 'apps.ini'))[name]
+
+
+@patch.multiple('pyappconfig.util',
                 time=Mock(),
                 getpass=Mock(return_value='password'),
                 confirm=Mock(return_value=True),
@@ -11,7 +17,6 @@ from clldutils.path import Path
                 sudo=Mock(return_value='/usr/venvs/__init__.py'),
                 run=Mock(return_value='{"status": "ok"}'),
                 local=Mock(),
-                put=Mock(),
                 env=MagicMock(),
                 service=Mock(),
                 cd=MagicMock(),
@@ -19,28 +24,26 @@ from clldutils.path import Path
                 postgres=Mock(),
                 get_input=Mock(return_value='app'),
                 import_module=Mock(return_value=None),
-                upload_template=Mock(),
-                data_file=Mock(return_value=Path('.')))
+                upload_template=Mock())
 def test_deploy():
-    from clldfabric.util import deploy, copy_files
-    from clldfabric.config import Config
+    from pyappconfig.util import deploy
 
-    app = Config()['testapp']
+    app = _make_app()
     assert app.src
     deploy(app, 'test', with_files=False)
     deploy(app, 'test', with_alembic=True, with_files=False)
     deploy(app, 'production', with_files=False)
-    copy_files(app)
 
 
-@patch.multiple('clldfabric.tasks', execute=Mock())
+@patch.multiple('pyappconfig.tasks', execute=Mock())
 def test_tasks():
-    from clldfabric.tasks import (
+    import pyappconfig.tasks
+    from pyappconfig.tasks import (
         init, deploy, start, stop, maintenance, cache, uncache, run_script,
-        create_downloads, copy_files, uninstall,
+        create_downloads, uninstall,
     )
 
-    init('apics')
+    pyappconfig.tasks.APP = _make_app()
     deploy('test')
     stop('test')
     start('test')
@@ -49,5 +52,4 @@ def test_tasks():
     uncache()
     run_script('test', 'script')
     create_downloads('test')
-    copy_files('test')
     uninstall('test')

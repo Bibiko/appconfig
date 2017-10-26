@@ -10,9 +10,9 @@ and run the init function, passing an app name defined in the global clld app co
 """
 from fabric.api import task, hosts, execute, env
 
-from clldfabric import config
-from clldfabric import util
-from clldfabric import varnish
+from pyappconfig import config
+from pyappconfig import util
+from pyappconfig import varnish
 
 
 APP = None
@@ -29,8 +29,8 @@ def _assign_host(environment):
 
 
 @task
-def bootstrap(nr='y'):
-    util.bootstrap(nr=nr)  # pragma: no cover
+def bootstrap():
+    util.bootstrap()  # pragma: no cover
 
 
 @hosts('localhost')
@@ -134,15 +134,6 @@ def copy_rdfdump(environment):
     """
     _assign_host(environment)
     execute(util.copy_rdfdump, APP)
-
-
-@hosts('localhost')
-@task
-def copy_files(environment):
-    """copy files for the app
-    """
-    _assign_host(environment)
-    execute(util.copy_files, APP)
 
 
 @hosts('localhost')

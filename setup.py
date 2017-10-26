@@ -1,5 +1,6 @@
 from setuptools import setup, find_packages
 
+
 setup(
     name='pyappconfig',
     version='0.0',
@@ -14,10 +15,11 @@ setup(
     install_requires=[
         'Fabric3',
         'fabtools-python==0.19.7',
+        'clldutils',
         'Jinja2',
         'pathlib2; python_version < "3"',
         'pytz',
-      ],
+    ],
     platforms='any',
     long_description='',
     classifiers=[
@@ -27,4 +29,9 @@ setup(
         'Programming Language :: Python :: 3',
         'Programming Language :: Python :: 3.4',
     ],
+    tests_require=['pytest', 'pytest-cov', 'mock'],
+    test_suite="pyappconfig",
+    entry_points={
+        'console_scripts': ['appconfig=pyappconfig.cli:main'],
+    },
 )
