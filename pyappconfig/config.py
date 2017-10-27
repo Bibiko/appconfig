@@ -12,22 +12,53 @@
 
 from __future__ import unicode_literals
 
+import io
+import configparser
+
 from ._compat import pathlib
 
 import attr
-from clldutils import inifile
 
 from . import REPOS_DIR
 
-__all__ = ['APPS', 'HOSTS']
+__all__ = ['APPS']
+
+
+class ConfigParser(configparser.ConfigParser):
+
+    _encoding = 'utf-8-sig'
+
+    @classmethod
+    def from_file(cls, filename, encoding=None, **kwargs):
+        self = cls(**kwargs)
+        if encoding is None:
+            encoding = cls._encoding
+        with io.open(filename, encoding=encoding) as fd:
+            self.read_file(fd)
+        return self
+
+    def items_without_defaults(self, section):
+        return list(self._sections[section].items())
 
 
 class Config(dict):
 
-    def __init__(self, cls, filename):
-        parser = inifile.INI.from_file(filename)
-        objs = [cls(name=section, **dict(parser.items(section)))
-                for section in parser.sections()]
+    filename = REPOS_DIR / 'apps.ini'
+
+    def __init__(self, cls=None, filename=None):
+        if cls is None:
+            cls = App
+        if filename is None:
+            filename = self.filename
+        parser = ConfigParser.from_file(filename)
+        hosts = dict(parser.items_without_defaults('_hosts'))
+        sections = [(s, dict(parser.items(s))) for s in parser.sections()
+                    if not s.startswith('_')]
+        for _, d in sections:
+            for e in ('production', 'test'):
+                if e in d:
+                    d[e] = hosts[d[e]]
+        objs = [cls(name=s, **d) for s, d in sections]
         super(Config, self).__init__((obj.name, obj) for obj in objs)
 
 
@@ -36,8 +67,6 @@ RemotePath = pathlib.PurePosixPath
 
 @attr.s
 class App(object):
-
-    _filename = REPOS_DIR / 'apps.ini'
 
     name = attr.ib()
     port = attr.ib(convert=int)
@@ -48,9 +77,9 @@ class App(object):
     workers = attr.ib(convert=int, default=3)
     require_deb = attr.ib(convert=lambda s: s.strip().split(), default=attr.Factory(list))
     require_pip = attr.ib(convert=lambda s: s.strip().split(), default=attr.Factory(list))
-    with_blog = attr.ib(convert=lambda s: inifile.INI.BOOLEAN_STATES[s.lower()], default='0')
-    pg_collkey = attr.ib(convert=lambda s: inifile.INI.BOOLEAN_STATES[s.lower()], default='0')
-    pg_unaccent = attr.ib(convert=lambda s: inifile.INI.BOOLEAN_STATES[s.lower()], default='0')
+    with_blog = attr.ib(convert=lambda s: ConfigParser.BOOLEAN_STATES[s.lower()], default='0')
+    pg_collkey = attr.ib(convert=lambda s: ConfigParser.BOOLEAN_STATES[s.lower()], default='0')
+    pg_unaccent = attr.ib(convert=lambda s: ConfigParser.BOOLEAN_STATES[s.lower()], default='0')
     error_email = attr.ib(default='lingweb@shh.mpg.de')
 
     @property
@@ -117,13 +146,4 @@ class App(object):
         return 'postgresql://{0}@/{0}'.format(self.name)
 
 
-@attr.s
-class Host(object):
-
-    _filename = REPOS_DIR / 'hosts.ini'
-
-    name = attr.ib()
-    hostname = attr.ib()
-
-
-APPS, HOSTS = (Config(cls, cls._filename) for cls in (App, Host))
+APPS = Config()

@@ -18,6 +18,7 @@ setup(
         'Fabric3',
         'fabtools-python>=0.19.7',
         'clldutils',
+        'configparser; python_version < "3"',
         'Jinja2',
         'pathlib2; python_version < "3"',
         'pytz',

@@ -7,7 +7,7 @@ import sys
 from clldutils.clilib import ArgumentParserWithLogging, command
 
 from . import REPOS_DIR
-from .config import APPS, HOSTS
+from .config import APPS
 
 __all__ = ['main']
 
@@ -19,12 +19,7 @@ def check(args):  # pragma: no cover
         if app.port in ports:
             args.log.error('{0}: Duplicate port: {1}'.format(app.name, app.port))
         ports.add(app.port)
-        if app.test not in HOSTS:
-            args.log.error('{0}: invalid test server: {1}'.format(app.name, app.test))
-        if app.production not in HOSTS:
-            args.log.error(
-                '{0}: invalid production server: {1}'.format(app.name, app.production))
-        if not REPOS_DIR.joinpath(app.name).exists():
+        if not (REPOS_DIR / app.name).exists():
             args.log.warn('{0}: Missing config dir'.format(app.name))
 
 
