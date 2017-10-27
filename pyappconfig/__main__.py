@@ -1,4 +1,4 @@
-# cli.py - command line interface
+# __main__.py - command line interface
 
 from __future__ import unicode_literals
 
@@ -30,3 +30,7 @@ def check(args):  # pragma: no cover
 def main():  # pragma: no cover
     parser = ArgumentParserWithLogging('pyappconfig')
     sys.exit(parser.main())
+
+
+if __name__ == '__main__':
+    main()

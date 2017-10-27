@@ -32,6 +32,6 @@ setup(
         'Programming Language :: Python :: 3.4',
     ],
     entry_points={
-        'console_scripts': ['appconfig=pyappconfig.cli:main'],
+        'console_scripts': ['appconfig=pyappconfig.__main__:main'],
     },
 )
