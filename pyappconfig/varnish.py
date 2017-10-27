@@ -1,3 +1,5 @@
+# varnish.py
+
 """
 deploy with varnish:
 
@@ -12,15 +14,11 @@ deploy with varnish:
 - adapt nginx site config
 - /etc/init.d/nginx reload
 """
+
 from fabric.contrib.files import append, exists
-from fabtools import require
-from fabtools import service
+from fabtools import require, service
 
-from pyappconfig._tasks import (
-    create_file_as_root, upload_template_as_root, get_template_variables, http_auth,
-)
 from pyappconfig.config import App
-
 
 DEFAULT = """
 START=yes
@@ -66,6 +64,8 @@ sub vcl_fetch {{
 def cache(app):  # pragma: no cover
     """require an app to be put behind varnish
     """
+    from pyappconfig.tasks import create_file_as_root, upload_template_as_root, get_template_variables
+
     require.deb.package('varnish')
     create_file_as_root('/etc/default/varnish', DEFAULT)
     create_file_as_root('/etc/varnish/main.vcl', MAIN_VCL)
@@ -90,6 +90,8 @@ def cache(app):  # pragma: no cover
 
 
 def uncache(app):  # pragma: no cover
+    from pyappconfig.tasks import http_auth
+
     tv = get_template_variables(app)
     tv['auth'] = http_auth(app)
     create_file_as_root(app.nginx_site, SITE_VCL_TEMPLATE.format(**tv))

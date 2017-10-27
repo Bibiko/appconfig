@@ -4,7 +4,7 @@ from __future__ import unicode_literals
 
 
 def test_deploy(mocker, app):
-    mocker.patch.multiple('pyappconfig._tasks',
+    mocker.patch.multiple('pyappconfig.tasks',
         time=mocker.Mock(),
         getpass=mocker.Mock(return_value='password'),
         confirm=mocker.Mock(return_value=True),
@@ -20,14 +20,15 @@ def test_deploy(mocker, app):
         postgres=mocker.Mock(),
         get_input=mocker.Mock(return_value='app'),
         import_module=mocker.Mock(return_value=None),
-        upload_template=mocker.Mock())
+        upload_template=mocker.Mock(),
+        APP=app)
 
-    from pyappconfig._tasks import deploy
+    from pyappconfig.tasks import deploy
 
     assert app.src
-    deploy(app, 'test', with_files=False)
-    deploy(app, 'test', with_alembic=True, with_files=False)
-    deploy(app, 'production', with_files=False)
+    deploy('test', with_files=False)
+    deploy('test', with_alembic=True, with_files=False)
+    deploy('production', with_files=False)
 
 
 def test_tasks(mocker, app):
