@@ -6,13 +6,14 @@ import sys
 
 from clldutils.clilib import ArgumentParserWithLogging, command
 
-from pyappconfig import REPOS_DIR
+from . import REPOS_DIR
+from .config import APPS, HOSTS
+
+__all__ = ['main']
 
 
 @command()
 def check(args):  # pragma: no cover
-    from pyappconfig.config import APPS, HOSTS
-
     ports = set()
     for app in APPS.values():
         if app.port in ports:

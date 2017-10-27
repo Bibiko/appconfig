@@ -10,13 +10,14 @@
     - environment variables
 """
 
-from pyappconfig._compat import pathlib
+from __future__ import unicode_literals
+
+from ._compat import pathlib
 
 import attr
-
 from clldutils import inifile
 
-from pyappconfig import REPOS_DIR
+from . import REPOS_DIR
 
 __all__ = ['APPS', 'HOSTS']
 

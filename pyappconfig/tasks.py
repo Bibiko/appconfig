@@ -21,7 +21,7 @@ from getpass import getpass
 from datetime import datetime, timedelta
 from importlib import import_module
 
-from pyappconfig._compat import input, pathlib
+from ._compat import input, pathlib
 
 from fabric.api import env, task, execute, settings, sudo, run, cd, local
 from fabric.contrib.console import confirm
@@ -31,9 +31,7 @@ from fabtools.files import upload_template
 from fabtools.python import virtualenv
 from pytz import timezone, utc
 
-from pyappconfig import TEMPLATE_DIR, PKG_DIR, config, varnish, tools
-
-APP = None
+from . import TEMPLATE_DIR, PKG_DIR, config, varnish, tools
 
 __all__ = [
     'init',
@@ -45,6 +43,11 @@ __all__ = [
     'run_script',
 ]
 
+APP = None
+
+
+env.use_ssh_config = True
+
 
 def init(app_name=None):
     global APP
@@ -53,17 +56,36 @@ def init(app_name=None):
     APP = config.APPS[app_name]
 
 
-def task_host_from_environment(func):
-    @functools.wraps(func)
-    def wrapper(environment='production', *args, **kwargs):
-        assert environment in ['production', 'test']
-        if not env.hosts:
-            # This allows overriding the configured hosts by explicitly passing a host for
-            # the task using fab's -H option.
-            env.hosts = [getattr(APP, environment)]
-        env.environment = environment
-        execute(func, APP, *args, **kwargs)
-    return task(wrapper)
+def task_host_from_environment(func_or_environment):
+    if callable(func_or_environment):
+        func, _environment = func_or_environment, None
+    else:
+        func, _environment = None, func_or_environment
+    if func is not None:
+        @functools.wraps(func)
+        def wrapper(environment, *args, **kwargs):
+            assert environment in ('production', 'test')
+            if not env.hosts:
+                # This allows overriding the configured hosts by explicitly passing a host for
+                # the task using fab's -H option.
+                env.hosts = [getattr(APP, environment)]
+            env.environment = environment
+            execute(func, APP, *args, **kwargs)
+        return task(wrapper)
+    else:
+        assert _environment in ('production', 'test')
+        def decorator(func):
+            @functools.wraps(func)
+            def wrapper(*args, **kwargs):
+                if not env.hosts:
+                    # This allows overriding the configured hosts by explicitly passing a host for
+                    # the task using fab's -H option.
+                    env.hosts = [getattr(APP, environment)]
+                env.environment = _environment
+                execute(func, APP, *args, **kwargs)
+            return task(wrapper)
+        return decorator
+    
 
 
 @task
@@ -129,13 +151,13 @@ def get_template_variables(app, monitor_mode=False, with_blog=False):
     return res
 
 
-@task_host_from_environment
+@task_host_from_environment('production')
 def cache(app):
     """"""
     execute(varnish.cache, app)
 
 
-@task_host_from_environment
+@task_host_from_environment('production')
 def uncache(app):
     execute(varnish.uncache, app)
 
@@ -334,6 +356,7 @@ def upload_template_as_root(dest, template, context=None, mode=None, owner='root
     upload_template(template, str(dest), context, use_jinja=True,
                     template_dir=TEMPLATE_DIR, use_sudo=True, backup=False,
                     mode=mode, chown=True, user=owner)
+
 
 def init_pg_collkey(app):
     require.files.file(

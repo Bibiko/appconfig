@@ -1,7 +1,6 @@
-# varnish.py
+# varnish.py - 
 
-"""
-deploy with varnish:
+"""deploy with varnish:
 
 - apt-get install varnish
 - create /etc/default/varnish
@@ -15,12 +14,16 @@ deploy with varnish:
 - /etc/init.d/nginx reload
 """
 
+from __future__ import unicode_literals
+
 from fabric.contrib.files import append, exists
 from fabtools import require, service
 
-from pyappconfig.config import App
+from . import config, tasks
 
-DEFAULT = """
+__all__ = ['cache', 'uncache']
+
+DEFAULT = '''
 START=yes
 NFILES=131072
 MEMLOCK=82000
@@ -33,18 +36,18 @@ DAEMON_OPTS="-a :6081 \
              -f /etc/varnish/main.vcl \
              -S /etc/varnish/secret \
              -s file,/var/lib/varnish/$INSTANCE/varnish_storage.bin,10G"
-"""
+'''
 
-MAIN_VCL = """
+MAIN_VCL = '''
 sub vcl_recv {
     set req.http.Host = regsub(req.http.Host, "^www\.", "");
     set req.http.Host = regsub(req.http.Host, ":80$", "");
 }
 
 include "/etc/varnish/sites.vcl";
-"""
+'''
 
-SITE_VCL_TEMPLATE = """
+SITE_VCL_TEMPLATE = '''
 backend {app.name} {{
     .host = "127.0.0.1";
     .port = "{app.port}";
@@ -58,17 +61,14 @@ sub vcl_fetch {{
     set beresp.ttl = 3600s;
     return(deliver);
 }}
-"""
+'''
 
 
 def cache(app):  # pragma: no cover
-    """require an app to be put behind varnish
-    """
-    from pyappconfig.tasks import create_file_as_root, upload_template_as_root, get_template_variables
-
+    """require an app to be put behind varnish"""
     require.deb.package('varnish')
-    create_file_as_root('/etc/default/varnish', DEFAULT)
-    create_file_as_root('/etc/varnish/main.vcl', MAIN_VCL)
+    tasks.create_file_as_root('/etc/default/varnish', DEFAULT)
+    task.create_file_as_root('/etc/varnish/main.vcl', MAIN_VCL)
 
     sites_vcl = '/etc/varnish/sites.vcl'
     site_config_dir = '/etc/varnish/sites'
@@ -77,22 +77,21 @@ def cache(app):  # pragma: no cover
     if exists(sites_vcl):
         append(sites_vcl, include, use_sudo=True)
     else:
-        create_file_as_root(sites_vcl, include + '\n')
+        tasks.create_file_as_root(sites_vcl, include + '\n')
 
     require.files.directory(site_config_dir, use_sudo=True)
-    create_file_as_root(site_config, SITE_VCL_TEMPLATE.format(app=app))
+    tasks.create_file_as_root(site_config, SITE_VCL_TEMPLATE.format(app=app))
     service.restart('varnish')
 
-    template_vars = get_template_variables(App(app.name, 6081, domain=app.domain))
+    app_6801 = config.App(app.name, 6081, domain=app.domain)
+    template_vars = tasks.get_template_variables(app_6801)
     template_vars['SITE'] = True
-    upload_template_as_root(app.nginx_site, 'nginx-app.conf', template_vars)
+    tasks.upload_template_as_root(app.nginx_site, 'nginx-app.conf', template_vars)
     service.reload('nginx')
 
 
 def uncache(app):  # pragma: no cover
-    from pyappconfig.tasks import http_auth
-
-    tv = get_template_variables(app)
+    tv = tasks.get_template_variables(app)
     tv['auth'] = http_auth(app)
-    create_file_as_root(app.nginx_site, SITE_VCL_TEMPLATE.format(**tv))
+    tasks.create_file_as_root(app.nginx_site, SITE_VCL_TEMPLATE.format(**tv))
     service.reload('nginx')

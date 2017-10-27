@@ -2,6 +2,8 @@
 
 from __future__ import unicode_literals
 
+from pyappconfig import tasks
+
 
 def test_deploy(mocker, app):
     mocker.patch.multiple('pyappconfig.tasks',
@@ -23,28 +25,20 @@ def test_deploy(mocker, app):
         upload_template=mocker.Mock(),
         APP=app)
 
-    from pyappconfig.tasks import deploy
-
-    assert app.src
-    deploy('test', with_files=False)
-    deploy('test', with_alembic=True, with_files=False)
-    deploy('production', with_files=False)
+    tasks.deploy('test', with_files=False)
+    tasks.deploy('test', with_alembic=True, with_files=False)
+    tasks.deploy('production', with_files=False)
 
 
 def test_tasks(mocker, app):
     mocker.patch.multiple('pyappconfig.tasks', execute=mocker.Mock(), APP=app)
-    
-    from pyappconfig.tasks import (
-        init, deploy, start, stop, maintenance, cache, uncache, run_script,
-        create_downloads, uninstall,
-    )
 
-    deploy('test')
-    stop('test')
-    start('test')
-    maintenance('test')
-    cache()
-    uncache()
-    run_script('test', 'script')
-    create_downloads('test')
-    uninstall('test')
+    tasks.deploy('test')
+    tasks.stop('test')
+    tasks.start('test')
+    tasks.maintenance('test')
+    tasks.cache()
+    tasks.uncache()
+    tasks.run_script('test', 'script')
+    tasks.create_downloads('test')
+    tasks.uninstall('test')
