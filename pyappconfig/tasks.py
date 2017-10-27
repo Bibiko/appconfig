@@ -80,12 +80,11 @@ def task_host_from_environment(func_or_environment):
                 if not env.hosts:
                     # This allows overriding the configured hosts by explicitly passing a host for
                     # the task using fab's -H option.
-                    env.hosts = [getattr(APP, environment)]
+                    env.hosts = [getattr(APP, _environment)]
                 env.environment = _environment
                 execute(func, APP, *args, **kwargs)
             return task(wrapper)
         return decorator
-    
 
 
 @task
@@ -223,7 +222,7 @@ def _deploy(app, environment, with_blog=False, with_alembic=False, with_files=Tr
         require.deb.packages(['postgresql-contrib'])
         sudo('sudo -u postgres psql -c "{0}" -d {1.name}'.format(
             'CREATE EXTENSION IF NOT EXISTS unaccent WITH SCHEMA public;',
-            app))    
+            app))
 
     with_pg_collkey = getattr(app, 'pg_collkey', False)
     if with_pg_collkey:
@@ -418,9 +417,9 @@ def pipfreeze(app):
     def iterlines(lines):
         warning = ('\x1b[33m', 'You should ')
         app_git = '%s.git' % app.name.lower()
-        ignore={'babel', 'fabric', 'fabtools', 'newrelic', 'paramiko', 'pycrypto', 'pyx'}
+        ignore = {'babel', 'fabric', 'fabtools', 'newrelic', 'paramiko', 'pycrypto', 'pyx'}
         for line in lines:
-            if line.startswith(warning): 
+            if line.startswith(warning):
                 continue  # https://github.com/pypa/pip/issues/2470
             elif app_git in line or line.partition('==')[0].lower() in ignore:
                 continue

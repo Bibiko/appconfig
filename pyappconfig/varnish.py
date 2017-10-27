@@ -1,4 +1,4 @@
-# varnish.py - 
+# varnish.py - install, configure, and run varnish cache
 
 """deploy with varnish:
 
@@ -68,7 +68,7 @@ def cache(app):  # pragma: no cover
     """require an app to be put behind varnish"""
     require.deb.package('varnish')
     tasks.create_file_as_root('/etc/default/varnish', DEFAULT)
-    task.create_file_as_root('/etc/varnish/main.vcl', MAIN_VCL)
+    tasks.create_file_as_root('/etc/varnish/main.vcl', MAIN_VCL)
 
     sites_vcl = '/etc/varnish/sites.vcl'
     site_config_dir = '/etc/varnish/sites'
@@ -92,6 +92,6 @@ def cache(app):  # pragma: no cover
 
 def uncache(app):  # pragma: no cover
     tv = tasks.get_template_variables(app)
-    tv['auth'] = http_auth(app)
+    tv['auth'] = tasks.http_auth(app)
     tasks.create_file_as_root(app.nginx_site, SITE_VCL_TEMPLATE.format(**tv))
     service.reload('nginx')
