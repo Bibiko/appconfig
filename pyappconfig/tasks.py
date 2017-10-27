@@ -354,7 +354,7 @@ def upload_template_as_root(dest, template, context=None, mode=None, owner='root
     if mode is not None:
         mode = int(mode, 8)
     upload_template(template, str(dest), context, use_jinja=True,
-                    template_dir=TEMPLATE_DIR, use_sudo=True, backup=False,
+                    template_dir=TEMPLATE_DIR.as_posix(), use_sudo=True, backup=False,
                     mode=mode, chown=True, user=owner)
 
 
