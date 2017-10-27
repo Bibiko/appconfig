@@ -1,3 +1,5 @@
+# setup.py
+
 from setuptools import setup, find_packages
 
 
@@ -14,7 +16,7 @@ setup(
     zip_safe=False,
     install_requires=[
         'Fabric3',
-        'fabtools-python==0.19.7',
+        'fabtools-python>=0.19.7',
         'clldutils',
         'Jinja2',
         'pathlib2; python_version < "3"',
@@ -29,7 +31,6 @@ setup(
         'Programming Language :: Python :: 3',
         'Programming Language :: Python :: 3.4',
     ],
-    tests_require=['pytest', 'pytest-mock', 'pytest-cov'],
     entry_points={
         'console_scripts': ['appconfig=pyappconfig.cli:main'],
     },

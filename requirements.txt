@@ -1,0 +1,8 @@
+# development environment: install in development mode
+-e .
+# dependencies for testing and building
+pytest>=3.1
+pytest-mock
+mock
+pytest-cov
+flake8
