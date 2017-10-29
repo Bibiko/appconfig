@@ -34,6 +34,7 @@ from pytz import timezone, utc
 from . import TEMPLATE_DIR, PKG_DIR, config, varnish, tools
 
 __all__ = [
+    'task_host_from_environment',
     'init',
     'pipfreeze',
     'bootstrap', 'deploy', 'uninstall',
@@ -70,19 +71,14 @@ def task_host_from_environment(func_or_environment):
                 # the task using fab's -H option.
                 env.hosts = [getattr(APP, environment)]
             env.environment = environment
-            execute(func, APP, *args, **kwargs)
+            return execute(func, APP, *args, **kwargs)
+        wrapper.inner_func = func
         return task(wrapper)
     else:
-        assert _environment in ('production', 'test')
         def decorator(func):
-            @functools.wraps(func)
-            def wrapper(*args, **kwargs):
-                if not env.hosts:
-                    # This allows overriding the configured hosts by explicitly passing a host for
-                    # the task using fab's -H option.
-                    env.hosts = [getattr(APP, _environment)]
-                env.environment = _environment
-                execute(func, APP, *args, **kwargs)
+            _wrapper = task_host_from_environment(func).wrapped
+            wrapper = functools.wraps(_wrapper)(functools.partial(_wrapper, _environment))
+            wrapper.inner_func = _wrapper.inner_func
             return task(wrapper)
         return decorator
 
@@ -162,16 +158,11 @@ def uncache(app):
 
 
 @task_host_from_environment
-def maintenance(app, hours=2, **kwargs):
+def maintenance(app, hours=2, template_variables=None):
     """create a maintenance page giving a date when we expect the service will be back
 
     :param hours: Number of hours we expect the downtime to last.
     """
-    execute(_maintenance, app, hours=hours, **kwargs)
-
-
-def _maintenance(app, hours=2, template_variables=None):
-    """turn maintenance mode on|off"""
     template_variables = template_variables or get_template_variables(app)
     ts = utc.localize(datetime.utcnow() + timedelta(hours=hours))
     ts = ts.astimezone(timezone('Europe/Berlin')).strftime('%Y-%m-%d %H:%M %Z%z')
@@ -182,14 +173,10 @@ def _maintenance(app, hours=2, template_variables=None):
 
 
 @task_host_from_environment
-def deploy(app, with_blog=False, **kwargs):
+def deploy(app, with_blog=False, with_alembic=False, with_files=True):
     """deploy the app"""
     if not with_blog:
         with_blog = getattr(app, 'with_blog', False)
-    execute(_deploy, app, env.environment, with_blog=with_blog, **kwargs)
-
-
-def _deploy(app, environment, with_blog=False, with_alembic=False, with_files=True):
     with settings(warn_only=True):
         lsb_release = run('lsb_release -a')
     for codename in ['trusty', 'precise', 'xenial']:
@@ -291,7 +278,7 @@ def _deploy(app, environment, with_blog=False, with_alembic=False, with_files=Tr
         upload_template_as_root(
             '/etc/logrotate.d/{0}'.format(app.name), 'logrotate.conf', template_variables)
 
-    _maintenance(app, hours=app.deploy_duration, template_variables=template_variables)
+    maintenance.inner_func(app, hours=app.deploy_duration, template_variables=template_variables)
     service.reload('nginx')
 
     if not with_alembic and confirm('Recreate database?', default=False):
