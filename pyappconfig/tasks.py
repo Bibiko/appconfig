@@ -34,8 +34,8 @@ from pytz import timezone, utc
 from . import TEMPLATE_DIR, PKG_DIR, config, varnish, tools
 
 __all__ = [
-    'task_host_from_environment',
     'init',
+    'task_host_from_environment',
     'pipfreeze',
     'bootstrap', 'deploy', 'uninstall',
     'start', 'stop', 'maintenance',
@@ -75,8 +75,8 @@ def task_host_from_environment(func_or_environment):
         wrapper.inner_func = func
         return task(wrapper)
     else:
-        def decorator(func):
-            _wrapper = task_host_from_environment(func).wrapped
+        def decorator(_func):
+            _wrapper = task_host_from_environment(_func).wrapped
             wrapper = functools.wraps(_wrapper)(functools.partial(_wrapper, _environment))
             wrapper.inner_func = _wrapper.inner_func
             return task(wrapper)
