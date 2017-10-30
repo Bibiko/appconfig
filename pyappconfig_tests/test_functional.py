@@ -29,6 +29,7 @@ def test_deploy(mocker):
         import_module=mocker.Mock(return_value=None),
         upload_template=mocker.Mock())
 
+    tasks.bootstrap()
     tasks.deploy('test', with_files=False)
     tasks.deploy('test', with_alembic=True, with_files=False)
     tasks.deploy('production', with_files=False)

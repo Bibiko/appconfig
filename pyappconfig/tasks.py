@@ -84,9 +84,8 @@ def task_app_from_environment(func_or_environment):
 
 
 @task
-def bootstrap():  # pragma: no cover
-    for pkg in ['vim', 'tree', 'nginx', 'open-vm-tools']:
-        require.deb.package(pkg)
+def bootstrap():
+    require.deb.packages(['vim', 'tree', 'nginx', 'open-vm-tools'])
 
 
 @task_app_from_environment
@@ -167,15 +166,14 @@ def maintenance(app, hours=2, template_variables=None):
     ts = ts.astimezone(timezone('Europe/Berlin')).strftime('%Y-%m-%d %H:%M %Z%z')
     template_variables['timestamp'] = ts
     require.files.directory(str(app.www), use_sudo=True)
-    upload_template_as_root(
-        app.www.joinpath('503.html'), '503.html', template_variables)
+    upload_template_as_root(app.www / '503.html', '503.html', template_variables)
 
 
 @task_app_from_environment
-def deploy(app, with_blog=False, with_alembic=False, with_files=True):
+def deploy(app, with_blog=None, with_alembic=False, with_files=True):
     """deploy the app"""
-    if not with_blog:
-        with_blog = getattr(app, 'with_blog', False)
+    if with_blog is None:
+        with_blog = app.with_blog
     with settings(warn_only=True):
         lsb_release = run('lsb_release -a')
     for codename in ['trusty', 'precise', 'xenial']:
@@ -196,7 +194,7 @@ def deploy(app, with_blog=False, with_alembic=False, with_files=True):
         with_blog=with_blog)
 
     require.users.user(app.name, shell='/bin/bash')
-    #require.postfix.server(env['host'])
+    #require.postfix.server(env.host)
     require.postgres.server()
     require.deb.package('default-jre' if lsb_release == 'xenial' else 'openjdk-6-jre')
     require.deb.packages(app.require_deb)
@@ -204,19 +202,18 @@ def deploy(app, with_blog=False, with_alembic=False, with_files=True):
     require.postgres.database(app.name, app.name)
     require.files.directory(str(app.venv), use_sudo=True)
 
-    if getattr(app, 'pg_unaccent', False):
-        require.deb.packages(['postgresql-contrib'])
+    if app.pg_unaccent:
+        require.deb.package('postgresql-contrib')
         sudo('sudo -u postgres psql -c "{0}" -d {1.name}'.format(
             'CREATE EXTENSION IF NOT EXISTS unaccent WITH SCHEMA public;',
             app))
 
-    with_pg_collkey = getattr(app, 'pg_collkey', False)
-    if with_pg_collkey:
+    if app.pg_collkey:
         pg_version = '9.1' if lsb_release == 'precise' else '9.3'
         if not exists('/usr/lib/postgresql/%s/lib/collkey_icu.so' % pg_version):
             require.deb.packages(['postgresql-server-dev-%s' % pg_version, 'libicu-dev'])
             upload_template_as_root(
-                '/tmp/Makefile', 'pg_collkey_Makefile', dict(pg_version=pg_version))
+                '/tmp/Makefile', 'pg_collkey_Makefile', {'pg_version': pg_version})
 
             require.files.file(
                 '/tmp/collkey_icu.c',
@@ -231,22 +228,18 @@ def deploy(app, with_blog=False, with_alembic=False, with_files=True):
         require.deb.package('python-dev')
         require.python.virtualenv(str(app.venv), use_sudo=True)
     else:
-        require.deb.package('python3-dev')
-        require.deb.package('python-virtualenv')
-        if not exists(str(app.venv.joinpath('bin'))):
+        require.deb.packages(['python3-dev', 'python-virtualenv'])
+        if not exists(str(app.venv / 'bin')):
             sudo('virtualenv -q --python=python3 %s' % app.venv)
 
     require.files.directory(str(app.logs), use_sudo=True)
 
     with virtualenv(str(app.venv)):
         require.python.pip('6.0.6')
-        sp = env['sudo_prefix']
-        env['sudo_prefix'] += ' -H'  # set HOME for pip log/cache
-        require.python.packages(app.require_pip, use_sudo=True)
-        for name in [app.name] + getattr(app, 'dependencies', []):
-            pkg = '-e git+git://github.com/clld/%s.git#egg=%s' % (name, name)
-            require.python.package(pkg, use_sudo=True)
-        env['sudo_prefix'] = sp
+        with settings(sudo_prefix=env.sudo_prefix + ' -H'):  # set HOME for pip log/cache
+            require.python.packages(app.require_pip, use_sudo=True)
+            app_pkg = '-e git+git://github.com/clld/%s.git#egg=%s' % (app.name, app.name)
+            require.python.package(app_pkg, use_sudo=True)
         sudo('webassets -m %s.assets build' % app.name)
         res = sudo('python -c "import clld; print(clld.__file__)"')
         assert res.startswith('/usr/venvs') and '__init__.py' in res
@@ -295,12 +288,12 @@ def deploy(app, with_blog=False, with_alembic=False, with_files=True):
                 sudo('sudo -u postgres dropdb %s' % app.name)
 
             require.postgres.database(app.name, app.name)
-            if with_pg_collkey:
+            if app.pg_collkey:
                 init_pg_collkey(app)
 
         sudo('sudo -u {0.name} psql -f /tmp/{0.name}.sql -d {0.name}'.format(app))
     else:
-        if exists(app.src.joinpath('alembic.ini')):
+        if exists(app.src / 'alembic.ini'):
             if confirm('Upgrade database?', default=False):
                 # Note: stopping the app is not strictly necessary, because the alembic
                 # revisions run in separate transactions!
@@ -320,8 +313,8 @@ def deploy(app, with_blog=False, with_alembic=False, with_files=True):
     # We only set add a setting clld.files, if the corresponding directory exists;
     # otherwise the app would throw an error on startup.
     template_variables['files'] = False
-    if exists(app.www.joinpath('files')):
-        template_variables['files'] = app.www.joinpath('files')
+    if exists(app.www / 'files'):
+        template_variables['files'] = app.www / 'files'
     upload_template_as_root(app.config, 'config.ini', template_variables)
 
     supervisor(app, 'run', template_variables)
@@ -367,7 +360,7 @@ def require_bibutils(app):  # pragma: no cover
             use_sudo=True)
 
         sudo('tar -xzvf {tgz} -C {app.home}'.format(tgz=target, app=app))
-        with cd(str(app.home.joinpath('bibutils_5.0'))):
+        with cd(str(app.home / 'bibutils_5.0')):
             sudo('./configure')
             sudo('make')
             sudo('make install')
@@ -433,7 +426,7 @@ def uninstall(app):  # pragma: no cover
 @task_app_from_environment
 def create_downloads(app):
     """create all configured downloads"""
-    dl_dir = app.src.joinpath(app.name, 'static', 'download')
+    dl_dir = app.src / app.name / 'static' / 'download'
     require.files.directory(dl_dir, use_sudo=True, mode="777")
     # run the script to create the exports from the database as glottolog3 user
     run_script(app, 'create_downloads')
@@ -443,11 +436,11 @@ def create_downloads(app):
 @task_app_from_environment
 def copy_downloads(app, pattern='*'):
     """copy downloads for the app"""
-    dl_dir = app.src.joinpath(app.name, 'static', 'download')
+    dl_dir = app.src / app.name / 'static' / 'download'
     require.files.directory(dl_dir, use_sudo=True, mode="777")
-    local_dl_dir = pathlib.Path(import_module(app.name).__file__).parent.joinpath('static', 'download')
+    local_dl_dir = pathlib.Path(import_module(app.name).__file__).parent / 'static' / 'download'
     for f in local_dl_dir.glob(pattern):
-        target = dl_dir.joinpath(f.name)
+        target = dl_dir / f.name
         create_file_as_root(target, open(f.as_posix()).read())
         sudo('chown %s:%s %s' % (app.name, app.name, target))
     require.files.directory(dl_dir, use_sudo=True, mode="755")
@@ -472,7 +465,7 @@ def run_script(app, script_name, *args):  # pragma: no cover
         sudo(
             '%s %s %s#%s %s' % (
                 app.venv_bin / 'python',
-                app.src.joinpath(app.name, 'scripts', '%s.py' % script_name),
+                app.src / app.name / 'scripts' / ('%s.py' % script_name),
                 os.path.basename(str(app.config)),
                 app.name,
                 ' '.join('%s' % arg for arg in args),
