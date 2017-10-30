@@ -398,7 +398,7 @@ def http_auth(app):
 def pipfreeze(app):
     """get installed versions"""
     with virtualenv(app.venv):
-        stdout = run('pip freeze')
+        stdout = run('pip freeze', combine_stderr=False)
 
     def iterlines(lines):
         warning = ('\x1b[33m', 'You should ')

@@ -15,7 +15,7 @@ setup(
     include_package_data=True,
     zip_safe=False,
     install_requires=[
-        'Fabric3',
+        'Fabric3>=1.11',
         'fabtools-python>=0.19.7',
         'clldutils',
         'configparser; python_version < "3"',
