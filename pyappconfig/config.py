@@ -112,6 +112,6 @@ class App(argparse.Namespace):
             new[k] = value
         if kwargs:
             raise ValueError('unknown attribute(s) %r' % kwargs)
-        inst = object.__new__(App)
+        inst = object.__new__(self.__class__)
         inst.__dict__ = new
         return inst
