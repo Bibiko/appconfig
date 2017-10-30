@@ -10,7 +10,7 @@ if PY2:  # pragma: no cover
 
     input = raw_input
 
-    iteritems = lambda x: i.iteritems()
+    iteritems = lambda x: x.iteritems()
     itervalues = lambda x: x.itervalues()
 
 else:  # pragma: no cover
