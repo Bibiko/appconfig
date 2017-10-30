@@ -1,4 +1,4 @@
-# conftest.py
+# conftest.py - pytest fixtures
 
 from __future__ import unicode_literals
 
@@ -10,13 +10,25 @@ else:
 
 import pytest
 
-from pyappconfig import config
-
 FIXTURES = pathlib.Path(__file__).parent / 'fixtures'
 
 
+@pytest.fixture(scope='session')
+def config(filename=FIXTURES / 'apps.ini'):
+    from pyappconfig.config import Config
+    return Config.from_file(filename)
+
+
+@pytest.fixture(scope='session')
+def app(config, name='testapp'):
+    return config[name]
+
+
 @pytest.fixture
-def app(name='testapp'):
-    result = config.Config(config.App, FIXTURES / 'apps.ini')[name]
-    assert result.src
-    return result
+def APP(mocker, app):
+    yield mocker.patch('pyappconfig.tasks.APP', app)
+
+
+@pytest.fixture
+def execute(mocker):
+    yield mocker.patch('pyappconfig.tasks.execute', mocker.Mock())

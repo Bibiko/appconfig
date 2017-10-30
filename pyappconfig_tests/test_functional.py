@@ -2,10 +2,15 @@
 
 from __future__ import unicode_literals
 
+import pytest
+
 from pyappconfig import tasks
 
 
-def test_deploy(mocker, app):
+pytestmark = pytest.mark.usefixtures('APP')
+
+
+def test_deploy(mocker):
     mocker.patch.multiple('pyappconfig.tasks',
         time=mocker.Mock(),
         getpass=mocker.Mock(return_value='password'),
@@ -22,17 +27,15 @@ def test_deploy(mocker, app):
         postgres=mocker.Mock(),
         get_input=mocker.Mock(return_value='app'),
         import_module=mocker.Mock(return_value=None),
-        upload_template=mocker.Mock(),
-        APP=app)
+        upload_template=mocker.Mock())
 
     tasks.deploy('test', with_files=False)
     tasks.deploy('test', with_alembic=True, with_files=False)
     tasks.deploy('production', with_files=False)
 
 
-def test_tasks(mocker, app):
-    mocker.patch.multiple('pyappconfig.tasks', execute=mocker.Mock(), APP=app)
-
+@pytest.mark.usefixtures('execute')
+def test_tasks():
     tasks.deploy('test')
     tasks.stop('test')
     tasks.start('test')

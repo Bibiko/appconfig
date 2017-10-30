@@ -10,7 +10,13 @@ if PY2:  # pragma: no cover
 
     input = raw_input
 
+    iteritems = lambda x: i.iteritems()
+    itervalues = lambda x: x.itervalues()
+
 else:  # pragma: no cover
     import pathlib
 
     input = input
+
+    iteritems = lambda x: iter(x.items())
+    itervalues = lambda x: iter(x.values())

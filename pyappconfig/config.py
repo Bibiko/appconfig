@@ -1,4 +1,4 @@
-# config.py - load apps.ini and hosts.ini into name/object dicts
+# config.py - load apps.ini into name/object dict
 
 """Configuration of DLCE apps.
 
@@ -13,137 +13,105 @@
 from __future__ import unicode_literals
 
 import io
+import copy
+import argparse
 import configparser
 
-from ._compat import pathlib
+from ._compat import pathlib, iteritems
 
-import attr
-
-from . import REPOS_DIR
-
-__all__ = ['APPS']
-
-
-class ConfigParser(configparser.ConfigParser):
-
-    _encoding = 'utf-8-sig'
-
-    @classmethod
-    def from_file(cls, filename, encoding=None, **kwargs):
-        self = cls(**kwargs)
-        if encoding is None:
-            encoding = cls._encoding
-        with io.open(filename, encoding=encoding) as fd:
-            self.read_file(fd)
-        return self
-
-    def items_without_defaults(self, section):
-        return list(self._sections[section].items())
+__all__ = ['Config']
 
 
 class Config(dict):
 
-    filename = REPOS_DIR / 'apps.ini'
-
-    def __init__(self, cls=None, filename=None):
-        if cls is None:
-            cls = App
-        if filename is None:
-            filename = self.filename
+    @classmethod
+    def from_file(cls, filename, value_cls=None):
+        if value_cls is None:
+            value_cls = App
         parser = ConfigParser.from_file(filename)
-        hosts = dict(parser.items_without_defaults('_hosts'))
-        sections = [(s, dict(parser.items(s))) for s in parser.sections()
-                    if not s.startswith('_')]
-        for _, d in sections:
-            for e in ('production', 'test'):
-                if e in d:
-                    d[e] = hosts[d[e]]
-        objs = [cls(name=s, **d) for s, d in sections]
-        super(Config, self).__init__((obj.name, obj) for obj in objs)
+        items = {s: value_cls(**parser[s]) for s in parser.sections()
+                if not s.startswith('_')}
+        assert all(s == v.name for s, v in iteritems(items))
+        return cls(items)
 
 
-RemotePath = pathlib.PurePosixPath
+class ConfigParser(configparser.ConfigParser):
+
+    _init_defaults = {
+        'delimiters': ('=',),
+        'comment_prefixes': ('#',),
+        'interpolation': configparser.ExtendedInterpolation(),
+    }
+
+    @classmethod
+    def from_file(cls, filename, encoding='utf-8-sig', **kwargs):
+        self = cls(**kwargs)
+        with io.open(filename, encoding=encoding) as fd:
+            self.read_file(fd)
+        return self
+
+    def __init__(self, defaults=None, **kwargs):
+        for k, v in iteritems(self._init_defaults):
+            kwargs.setdefault(k, v)
+        super(ConfigParser, self).__init__(defaults, **kwargs)
 
 
-@attr.s
-class App(object):
-
-    name = attr.ib()
-    port = attr.ib(convert=int)
-    test = attr.ib()
-    production = attr.ib()
-    deploy_duration = attr.ib(convert=int)
-    domain = attr.ib(default=None)
-    workers = attr.ib(convert=int, default=3)
-    require_deb = attr.ib(convert=lambda s: s.strip().split(), default=attr.Factory(list))
-    require_pip = attr.ib(convert=lambda s: s.strip().split(), default=attr.Factory(list))
-    with_blog = attr.ib(convert=lambda s: ConfigParser.BOOLEAN_STATES[s.lower()], default='0')
-    pg_collkey = attr.ib(convert=lambda s: ConfigParser.BOOLEAN_STATES[s.lower()], default='0')
-    pg_unaccent = attr.ib(convert=lambda s: ConfigParser.BOOLEAN_STATES[s.lower()], default='0')
-    error_email = attr.ib(default='lingweb@shh.mpg.de')
-
-    @property
-    def src(self):
-        """directory containing a clone of the app's source repository.
-        """
-        return self.venv / 'src' / self.name
-
-    @property
-    def venv(self):
-        """directory containing virtualenvs for clld apps.
-        """
-        return RemotePath('/usr/venvs') / self.name
-
-    @property
-    def home(self):
-        """home directory of the user running the app.
-        """
-        return RemotePath('/home') / self.name
-
-    @property
-    def www(self):
-        return self.home / 'www'
-
-    @property
-    def config(self):
-        """path of the app's config file.
-        """
-        return self.home / 'config.ini'
-
-    @property
-    def logs(self):
-        """directory containing the app's logfiles.
-        """
-        return RemotePath('/var/log') / self.name
-
-    @property
-    def error_log(self):
-        return self.logs / 'error.log'
-
-    def bin(self, command):
-        """bin directory of the app's virtualenv.
-        """
-        return str(self.venv / 'bin' / command)
-
-    @property
-    def supervisor(self):
-        return RemotePath('/etc/supervisor/conf.d') / ('%s.conf' % self.name)
-
-    @property
-    def nginx_location(self):
-        return RemotePath('/etc/nginx/locations.d') / ('%s.conf' % self.name)
-
-    @property
-    def nginx_htpasswd(self):
-        return RemotePath('/etc/nginx/locations.d') / ('%s.htpasswd' % self.name)
-
-    @property
-    def nginx_site(self):
-        return RemotePath('/etc/nginx/sites-enabled') / self.name
-
-    @property
-    def sqlalchemy_url(self):
-        return 'postgresql://{0}@/{0}'.format(self.name)
+def getboolean(s):
+    return ConfigParser.BOOLEAN_STATES[s.lower()]
 
 
-APPS = Config()
+def getwords(s):
+    return s.strip().split()
+
+
+class App(argparse.Namespace):
+
+    _fields = dict.fromkeys([
+        'name', 'test', 'production',
+        'domain', 'error_email',
+        'sqlalchemy_url',
+    ])
+
+    _fields.update({
+        'port': int,
+        'with_blog': getboolean,
+        'workers': int,
+        'deploy_duration': int,
+        'require_deb': getwords,
+        'require_pip': getwords,
+        'pg_collkey': getboolean,
+        'pg_unaccent': getboolean,
+    })
+
+    _fields.update(dict.fromkeys([
+        'home', 'config', 'www',
+        'venv', 'venv_bin', 'gunicorn', 'src',
+        'logs', 'error_log',
+        'supervisor', 'nginx_site', 'nginx_location', 'nginx_htpasswd',
+    ], pathlib.PurePosixPath))
+
+    def __init__(self, **kwargs):
+        kw = self._fields.copy()
+        for k, f in list(kw.items()):
+            try:
+                value = kwargs.pop(k)
+            except KeyError:
+                raise ValueError('missing attribute %r' % k)
+            kw[k] = f(value) if f is not None else value
+        if kwargs:
+            raise ValueError('unknown attribute(s) %r' % kwargs)
+        super(App, self).__init__(**kw)
+
+    def replace(self, **kwargs):
+        old, new = self.__dict__, self._fields.copy()
+        for k, f in list(new.items()):
+            if k in kwargs:
+                value = f(kwargs.pop(k)) if f is not None else kwargs.pop(k)
+            else:
+                value = copy.copy(old[k])
+            new[k] = value
+        if kwargs:
+            raise ValueError('unknown attribute(s) %r' % kwargs)
+        inst = object.__new__(App)
+        inst.__dict__ = new
+        return inst

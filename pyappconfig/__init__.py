@@ -4,8 +4,16 @@ from __future__ import unicode_literals
 
 from ._compat import pathlib
 
-__all__ = ['PKG_DIR', 'REPOS_DIR', 'TEMPLATE_DIR']
+from . import config
+
+__all__ = ['PKG_DIR', 'TEMPLATE_DIR', 'REPOS_DIR', 'CONFIG_FILE', 'APPS']
 
 PKG_DIR = pathlib.Path(__file__).parent
-REPOS_DIR = PKG_DIR.parent
+
 TEMPLATE_DIR = PKG_DIR / 'templates'
+
+REPOS_DIR = PKG_DIR.parent
+
+CONFIG_FILE = REPOS_DIR / 'apps.ini'
+
+APPS = config.Config.from_file(CONFIG_FILE)

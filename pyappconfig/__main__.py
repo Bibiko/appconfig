@@ -4,10 +4,11 @@ from __future__ import unicode_literals
 
 import sys
 
+from ._compat import itervalues
+
 from clldutils.clilib import ArgumentParserWithLogging, command
 
-from . import REPOS_DIR
-from .config import APPS
+from . import REPOS_DIR, APPS
 
 __all__ = ['main']
 
@@ -15,7 +16,7 @@ __all__ = ['main']
 @command()
 def check(args):  # pragma: no cover
     ports = set()
-    for app in APPS.values():
+    for app in itervalues(APPS):
         if app.port in ports:
             args.log.error('{0}: Duplicate port: {1}'.format(app.name, app.port))
         ports.add(app.port)

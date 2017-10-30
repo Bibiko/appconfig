@@ -19,7 +19,7 @@ from __future__ import unicode_literals
 from fabric.contrib.files import append, exists
 from fabtools import require, service
 
-from . import config, tasks
+from . import tasks
 
 __all__ = ['cache', 'uncache']
 
@@ -83,8 +83,7 @@ def cache(app):  # pragma: no cover
     tasks.create_file_as_root(site_config, SITE_VCL_TEMPLATE.format(app=app))
     service.restart('varnish')
 
-    app_6801 = config.App(app.name, 6081, domain=app.domain)
-    template_vars = tasks.get_template_variables(app_6801)
+    template_vars = tasks.get_template_variables(app.replace(port=6081))
     template_vars['SITE'] = True
     tasks.upload_template_as_root(app.nginx_site, 'nginx-app.conf', template_vars)
     service.reload('nginx')

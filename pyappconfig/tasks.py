@@ -21,7 +21,7 @@ from getpass import getpass
 from datetime import datetime, timedelta
 from importlib import import_module
 
-from ._compat import input, pathlib
+from ._compat import pathlib, input, iteritems
 
 from fabric.api import env, task, execute, settings, sudo, run, cd, local
 from fabric.contrib.console import confirm
@@ -31,11 +31,11 @@ from fabtools.files import upload_template
 from fabtools.python import virtualenv
 from pytz import timezone, utc
 
-from . import TEMPLATE_DIR, PKG_DIR, config, varnish, tools
+from . import PKG_DIR, TEMPLATE_DIR, APPS, varnish, tools
 
 __all__ = [
     'init',
-    'task_host_from_environment',
+    'task_app_from_environment',
     'pipfreeze',
     'bootstrap', 'deploy', 'uninstall',
     'start', 'stop', 'maintenance',
@@ -54,10 +54,10 @@ def init(app_name=None):
     global APP
     if app_name is None:
         app_name = tools.caller_dirname()
-    APP = config.APPS[app_name]
+    APP = APPS[app_name]
 
 
-def task_host_from_environment(func_or_environment):
+def task_app_from_environment(func_or_environment):
     if callable(func_or_environment):
         func, _environment = func_or_environment, None
     else:
@@ -76,7 +76,7 @@ def task_host_from_environment(func_or_environment):
         return task(wrapper)
     else:
         def decorator(_func):
-            _wrapper = task_host_from_environment(_func).wrapped
+            _wrapper = task_app_from_environment(_func).wrapped
             wrapper = functools.wraps(_wrapper)(functools.partial(_wrapper, _environment))
             wrapper.inner_func = _wrapper.inner_func
             return task(wrapper)
@@ -89,13 +89,13 @@ def bootstrap():  # pragma: no cover
         require.deb.package(pkg)
 
 
-@task_host_from_environment
+@task_app_from_environment
 def stop(app):
     """stop app by changing the supervisord config"""
     execute(supervisor, app, 'pause')
 
 
-@task_host_from_environment
+@task_app_from_environment
 def start(app):
     """start app by changing the supervisord config"""
     execute(supervisor, app, 'run')
@@ -124,7 +124,6 @@ def get_template_variables(app, monitor_mode=False, with_blog=False):
     res = dict(
         app=app,
         env=env,
-        gunicorn=app.bin('gunicorn_paster'),
         monitor_mode=monitor_mode,
         auth='',
         bloghost='',
@@ -146,18 +145,18 @@ def get_template_variables(app, monitor_mode=False, with_blog=False):
     return res
 
 
-@task_host_from_environment('production')
+@task_app_from_environment('production')
 def cache(app):
     """"""
     execute(varnish.cache, app)
 
 
-@task_host_from_environment('production')
+@task_app_from_environment('production')
 def uncache(app):
     execute(varnish.uncache, app)
 
 
-@task_host_from_environment
+@task_app_from_environment
 def maintenance(app, hours=2, template_variables=None):
     """create a maintenance page giving a date when we expect the service will be back
 
@@ -172,7 +171,7 @@ def maintenance(app, hours=2, template_variables=None):
         app.www.joinpath('503.html'), '503.html', template_variables)
 
 
-@task_host_from_environment
+@task_app_from_environment
 def deploy(app, with_blog=False, with_alembic=False, with_files=True):
     """deploy the app"""
     if not with_blog:
@@ -309,7 +308,7 @@ def deploy(app, with_blog=False, with_alembic=False, with_files=True):
                 with virtualenv(str(app.venv)):
                     with cd(str(app.src)):
                         sudo('sudo -u {0.name} {1} -n production upgrade head'.format(
-                            app, app.bin('alembic')))
+                            app, app.venv_bin / 'alembic'))
 
                 if confirm('Vacuum database?', default=False):
                     if confirm('VACUUM FULL?', default=False):
@@ -382,7 +381,7 @@ def http_auth(app):
     while not pwds['admin']:
         pwds['admin'] = getpass(prompt='HTTP Basic Auth password for user admin: ')
 
-    for i, pair in enumerate([(n, p) for n, p in pwds.items() if p]):
+    for i, pair in enumerate([(n, p) for n, p in iteritems(pwds) if p]):
         opts = 'bd'
         if i == 0:
             opts += 'c'
@@ -395,7 +394,7 @@ def http_auth(app):
         auth_basic_user_file %s;""" % (app.name, app.nginx_htpasswd)
 
 
-@task_host_from_environment
+@task_app_from_environment
 def pipfreeze(app):
     """get installed versions"""
     with virtualenv(app.venv):
@@ -420,7 +419,7 @@ def pipfreeze(app):
         fp.writelines(iterlines(stdout.splitlines()))
 
 
-@task_host_from_environment
+@task_app_from_environment
 def uninstall(app):  # pragma: no cover
     """uninstall the app"""
     for file_ in [app.supervisor, app.nginx_location, app.nginx_site]:
@@ -431,7 +430,7 @@ def uninstall(app):  # pragma: no cover
     sudo('supervisorctl stop %s' % app.name)
 
 
-@task_host_from_environment
+@task_app_from_environment
 def create_downloads(app):
     """create all configured downloads"""
     dl_dir = app.src.joinpath(app.name, 'static', 'download')
@@ -441,7 +440,7 @@ def create_downloads(app):
     require.files.directory(dl_dir, use_sudo=True, mode="755")
 
 
-@task_host_from_environment
+@task_app_from_environment
 def copy_downloads(app, pattern='*'):
     """copy downloads for the app"""
     dl_dir = app.src.joinpath(app.name, 'static', 'download')
@@ -460,19 +459,19 @@ def create_file_as_root(path, content, **kw):
     require.files.file(str(path), contents=content, use_sudo=True, **kw)
 
 
-@task_host_from_environment
+@task_app_from_environment
 def copy_rdfdump(app):
     """copy rdfdump for the app"""
     execute(copy_downloads(app, pattern='*.n3.gz'))
 
 
-@task_host_from_environment
+@task_app_from_environment
 def run_script(app, script_name, *args):  # pragma: no cover
     """"""
     with cd(str(app.home)):
         sudo(
             '%s %s %s#%s %s' % (
-                app.bin('python'),
+                app.venv_bin / 'python',
                 app.src.joinpath(app.name, 'scripts', '%s.py' % script_name),
                 os.path.basename(str(app.config)),
                 app.name,
