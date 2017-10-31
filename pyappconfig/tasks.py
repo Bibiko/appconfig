@@ -23,7 +23,7 @@ from importlib import import_module
 
 from ._compat import pathlib, input, iteritems
 
-from fabric.api import env, task, execute, settings, sudo, run, cd, local
+from fabric.api import env, task, execute, settings, shell_env, sudo, run, cd, local
 from fabric.contrib.console import confirm
 from fabric.contrib.files import exists
 from fabtools import require, service, postgres
@@ -176,7 +176,7 @@ def deploy(app, with_blog=None, with_alembic=False, with_files=True):
         with_blog = app.with_blog
     with settings(warn_only=True):
         lsb_release = run('lsb_release -a')
-    for codename in ['trusty', 'precise', 'xenial']:
+    for codename in ['precise', 'trusty', 'xenial']:
         if codename in lsb_release:
             lsb_release = codename
             break
@@ -195,11 +195,13 @@ def deploy(app, with_blog=None, with_alembic=False, with_files=True):
 
     require.users.user(app.name, shell='/bin/bash')
     #require.postfix.server(env.host)
-    require.postgres.server()
+    with shell_env(SYSTEMD_PAGER=''):
+        require.postgres.server()
     require.deb.package('default-jre' if lsb_release == 'xenial' else 'openjdk-6-jre')
     require.deb.packages(app.require_deb)
-    require.postgres.user(app.name, app.name)
-    require.postgres.database(app.name, app.name)
+    with shell_env(SYSTEMD_PAGER=''):
+        require.postgres.user(app.name, app.name)
+        require.postgres.database(app.name, app.name)
     require.files.directory(str(app.venv), use_sudo=True)
 
     if app.pg_unaccent:
