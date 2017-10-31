@@ -31,4 +31,4 @@ def APP(mocker, app):
 
 @pytest.fixture
 def execute(mocker):
-    yield mocker.patch('pyappconfig.tasks.execute', mocker.Mock())
+    yield mocker.patch('pyappconfig.tasks.execute', new_callable=mocker.Mock)

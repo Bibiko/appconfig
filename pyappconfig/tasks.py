@@ -46,6 +46,10 @@ __all__ = [
 
 APP = None
 
+PG_COLLKEY_DIR = PKG_DIR / 'pg_collkey-v0.5'
+
+BIBUTILS_DIR = PKG_DIR / 'bibutils'
+
 
 env.use_ssh_config = True
 
@@ -62,6 +66,7 @@ def task_app_from_environment(func_or_environment):
         func, _environment = func_or_environment, None
     else:
         func, _environment = None, func_or_environment
+
     if func is not None:
         @functools.wraps(func)
         def wrapper(environment, *args, **kwargs):
@@ -135,10 +140,9 @@ def get_template_variables(app, monitor_mode=False, with_blog=False):
             ('bloguser', app.name),
             ('blogpassword', ''),
         ]:
-            res[key] = os.environ.get(('%s_%s' % (app.name, key)).upper(), '')
-            if not res[key]:
-                custom = get_input('Blog %s [%s]: ' % (key[4:], default))
-                res[key] = custom if custom else default
+            res[key] = (os.environ.get(('%s_%s' % (app.name, key)).upper(), '')
+                        or get_input('Blog %s [%s]: ' % (key[4:], default))
+                        or default)
         assert res['blogpassword']
 
     return res
@@ -174,8 +178,8 @@ def deploy(app, with_blog=None, with_alembic=False, with_files=True):
     """deploy the app"""
     if with_blog is None:
         with_blog = app.with_blog
-    with settings(warn_only=True):
-        lsb_release = run('lsb_release -a')
+
+    lsb_release = run('lsb_release -a', warn_only=True)
     for codename in ['precise', 'trusty', 'xenial']:
         if codename in lsb_release:
             lsb_release = codename
@@ -183,7 +187,7 @@ def deploy(app, with_blog=None, with_alembic=False, with_files=True):
     else:
         if lsb_release != '{"status": "ok"}':
             # if this were the case, we'd be in a test!
-            raise ValueError('unsupported platform: %s' % lsb_release)
+            raise ValueError('unsupported platform: %r' % lsb_release)
 
     if env.environment == 'test' and app.workers > 3:
         app.workers = 3
@@ -206,25 +210,11 @@ def deploy(app, with_blog=None, with_alembic=False, with_files=True):
 
     if app.pg_unaccent:
         require.deb.package('postgresql-contrib')
-        sudo('sudo -u postgres psql -c "{0}" -d {1.name}'.format(
-            'CREATE EXTENSION IF NOT EXISTS unaccent WITH SCHEMA public;',
-            app))
+        sql = 'CREATE EXTENSION IF NOT EXISTS unaccent WITH SCHEMA public;' 
+        sudo('sudo -u postgres psql -c "{0}" -d {1.name}'.format(sql, app))
 
     if app.pg_collkey:
-        pg_version = '9.1' if lsb_release == 'precise' else '9.3'
-        if not exists('/usr/lib/postgresql/%s/lib/collkey_icu.so' % pg_version):
-            require.deb.packages(['postgresql-server-dev-%s' % pg_version, 'libicu-dev'])
-            upload_template_as_root(
-                '/tmp/Makefile', 'pg_collkey_Makefile', {'pg_version': pg_version})
-
-            require.files.file(
-                '/tmp/collkey_icu.c',
-                source=os.path.join(
-                    os.path.dirname(__file__), 'pg_collkey-v0.5', 'collkey_icu.c'))
-            with cd('/tmp'):
-                sudo('make')
-                sudo('make install')
-        init_pg_collkey(app)
+        init_pg_collkey(app, lsb_release)
 
     if lsb_release == 'precise':
         require.deb.package('python-dev')
@@ -252,8 +242,7 @@ def deploy(app, with_blog=None, with_alembic=False, with_files=True):
     #
     # configure nginx:
     #
-    require.files.directory(
-        os.path.dirname(str(app.nginx_location)),
+    require.files.directory(str(app.nginx_location.parent),
         owner='root', group='root', use_sudo=True)
 
     restricted, auth = http_auth(app)
@@ -264,13 +253,11 @@ def deploy(app, with_blog=None, with_alembic=False, with_files=True):
     if env.environment == 'test':
         upload_template_as_root('/etc/nginx/sites-available/default', 'nginx-default.conf')
         template_variables['SITE'] = False
-        upload_template_as_root(
-            app.nginx_location, 'nginx-app.conf', template_variables)
+        upload_template_as_root(app.nginx_location, 'nginx-app.conf', template_variables)
     elif env.environment == 'production':
         template_variables['SITE'] = True
         upload_template_as_root(app.nginx_site, 'nginx-app.conf', template_variables)
-        upload_template_as_root(
-            '/etc/logrotate.d/{0}'.format(app.name), 'logrotate.conf', template_variables)
+        upload_template_as_root(app.logrotate, 'logrotate.conf', template_variables)
 
     maintenance.inner_func(app, hours=app.deploy_duration, template_variables=template_variables)
     service.reload('nginx')
@@ -291,7 +278,7 @@ def deploy(app, with_blog=None, with_alembic=False, with_files=True):
 
             require.postgres.database(app.name, app.name)
             if app.pg_collkey:
-                init_pg_collkey(app)
+                init_pg_collkey(app, lsb_release)
 
         sudo('sudo -u {0.name} psql -f /tmp/{0.name}.sql -d {0.name}'.format(app))
     elif exists(app.src / 'alembic.ini') and confirm('Upgrade database?', default=False):
@@ -335,12 +322,20 @@ def upload_template_as_root(dest, template, context=None, mode=None, owner='root
                     mode=mode, chown=True, user=owner)
 
 
-def init_pg_collkey(app):
-    require.files.file(
-        '/tmp/collkey_icu.sql',
-        source=os.path.join(
-            os.path.dirname(__file__), 'pg_collkey-v0.5', 'collkey_icu.sql'))
-    sudo('sudo -u postgres psql -f /tmp/collkey_icu.sql -d {0.name}'.format(app))
+def init_pg_collkey(app, lsb_release):
+    assert app.pg_collkey
+    pg_version = '9.1' if lsb_release == 'precise' else '9.3'
+    if not exists('/usr/lib/postgresql/%s/lib/collkey_icu.so' % pg_version):
+        require.deb.packages(['postgresql-server-dev-%s' % pg_version, 'libicu-dev'])
+        with cd('/tmp'):
+            upload_template_as_root('Makefile', 'pg_collkey_Makefile', {'pg_version': pg_version})
+            require.files.file('collkey_icu.c', source=str(PG_COLLKEY_DIR / 'collkey_icu.c'))
+            sudo('make')
+            sudo('make install')
+
+    with cd('/tmp'):
+        require.files.file('collkey_icu.sql', source=str(PG_COLLKEY_DIR / 'collkey_icu.sql'))
+        sudo('sudo -u tgres psql -f collkey_icu.sql -d {0.name}'.format(app))
 
 
 def require_bibutils(app):  # pragma: no cover
@@ -352,11 +347,9 @@ def require_bibutils(app):  # pragma: no cover
     sudo make install
     """
     if not exists('/usr/local/bin/bib2xml'):
-        target = '/tmp/bibutils_5.0_src.tgz'
-        require.files.file(
-            target,
-            source=(PKG_DIR / 'bibutils' / 'bibutils_5.0_src.tgz').as_posix(),
-            use_sudo=True, mode='')
+        source = BIBUTILS_DIR / 'bibutils_5.0_src.tgz'
+        target = '/tmp/%s' % source.name
+        require.files.file(target, source=source.as_posix(), use_sudo=True, mode='')
 
         sudo('tar -xzvf {tgz} -C {app.home}'.format(tgz=target, app=app))
         with cd(str(app.home / 'bibutils_5.0')):
@@ -415,8 +408,7 @@ def pipfreeze(app):
 def uninstall(app):  # pragma: no cover
     """uninstall the app"""
     for file_ in [app.supervisor, app.nginx_location, app.nginx_site]:
-        file_ = str(file_)
-        if exists(file_):
+        if exists(str(file_)):
             sudo('rm %s' % file_)
     service.reload('nginx')
     sudo('supervisorctl stop %s' % app.name)
@@ -465,7 +457,7 @@ def run_script(app, script_name, *args):  # pragma: no cover
             '%s %s %s#%s %s' % (
                 app.venv_bin / 'python',
                 app.src / app.name / 'scripts' / ('%s.py' % script_name),
-                os.path.basename(str(app.config)),
+                app.config.name,
                 app.name,
                 ' '.join('%s' % arg for arg in args),
             ),
