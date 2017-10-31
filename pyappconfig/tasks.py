@@ -294,22 +294,19 @@ def deploy(app, with_blog=None, with_alembic=False, with_files=True):
                 init_pg_collkey(app)
 
         sudo('sudo -u {0.name} psql -f /tmp/{0.name}.sql -d {0.name}'.format(app))
-    else:
-        if exists(app.src / 'alembic.ini'):
-            if confirm('Upgrade database?', default=False):
-                # Note: stopping the app is not strictly necessary, because the alembic
-                # revisions run in separate transactions!
-                supervisor(app, 'pause', template_variables)
-                with virtualenv(str(app.venv)):
-                    with cd(str(app.src)):
-                        sudo('sudo -u {0.name} {1} -n production upgrade head'.format(
-                            app, app.venv_bin / 'alembic'))
+    elif exists(app.src / 'alembic.ini') and confirm('Upgrade database?', default=False):
+        # Note: stopping the app is not strictly necessary, because the alembic
+        # revisions run in separate transactions!
+        supervisor(app, 'pause', template_variables)
+        with virtualenv(str(app.venv)), cd(str(app.src)):
+            sudo('sudo -u {0.name} {1} -n production upgrade head'.format(
+                app, app.venv_bin / 'alembic'))
 
-                if confirm('Vacuum database?', default=False):
-                    if confirm('VACUUM FULL?', default=False):
-                        sudo('sudo -u postgres vacuumdb -f -z -d %s' % app.name)
-                    else:
-                        sudo('sudo -u postgres vacuumdb -z -d %s' % app.name)
+        if confirm('Vacuum database?', default=False):
+            if confirm('VACUUM FULL?', default=False):
+                sudo('sudo -u postgres vacuumdb -f -z -d %s' % app.name)
+            else:
+                sudo('sudo -u postgres vacuumdb -z -d %s' % app.name)
 
     template_variables['TEST'] = {'test': True, 'production': False}[env.environment]
     # We only set add a setting clld.files, if the corresponding directory exists;
