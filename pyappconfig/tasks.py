@@ -21,7 +21,7 @@ from getpass import getpass
 from datetime import datetime, timedelta
 from importlib import import_module
 
-from ._compat import pathlib, input, iteritems
+from ._compat import pathlib, string_types, input, iteritems
 
 from fabric.api import env, task, execute, settings, shell_env, sudo, run, cd, local
 from fabric.contrib.console import confirm
@@ -127,14 +127,11 @@ def supervisor(app, command, template_variables=None):
 
 
 def get_template_variables(app, monitor_mode=False, with_blog=False):
-    res = dict(
-        app=app,
-        env=env,
-        monitor_mode=monitor_mode,
-        auth='',
-        bloghost='',
-        bloguser='',
-        blogpassword='')
+    res = {
+        'app': app, 'env': env, 'monitor_mode': monitor_mode,
+        'auth': '',
+        'bloghost': '', 'bloguser': '', 'blogpassword': '',
+    }
 
     if with_blog:  # pragma: no cover
         for key, default in [
@@ -142,7 +139,7 @@ def get_template_variables(app, monitor_mode=False, with_blog=False):
             ('bloguser', app.name),
             ('blogpassword', ''),
         ]:
-            res[key] = (os.environ.get(('%s_%s' % (app.name, key)).upper(), '')
+            res[key] = (os.environ.get(('%s_%s' % (app.name, key)).upper())
                         or get_input('Blog %s [%s]: ' % (key[4:], default))
                         or default)
         assert res['blogpassword']
@@ -181,6 +178,9 @@ def deploy(app, with_blog=None, with_alembic=False, with_files=True):
     if with_blog is None:
         with_blog = app.with_blog
 
+    if env.environment == 'test' and app.workers > 3:
+        app.workers = 3
+
     lsb_release = run('lsb_release -a', warn_only=True)
     for codename in ['precise', 'trusty', 'xenial']:
         if codename in lsb_release:
@@ -191,33 +191,28 @@ def deploy(app, with_blog=None, with_alembic=False, with_files=True):
             # if this were the case, we'd be in a test!
             raise ValueError('unsupported platform: %r' % lsb_release)
 
-    if env.environment == 'test' and app.workers > 3:
-        app.workers = 3
+    require.users.user(app.name, shell='/bin/bash')
+    require.deb.packages(app.require_deb)
+    require.deb.package('default-jre' if lsb_release == 'xenial' else 'openjdk-6-jre')
+    require.files.directory(str(app.logs), use_sudo=True)
+
+    with shell_env(SYSTEMD_PAGER=''):
+        require.postgres.server()
+        require.postgres.user(app.name, app.name)
+        require.postgres.database(app.name, app.name)
+    if app.pg_unaccent:
+        require.deb.package('postgresql-contrib')
+        sql = 'CREATE EXTENSION IF NOT EXISTS unaccent WITH SCHEMA public;' 
+        sudo('sudo -u postgres psql -c "{0}" -d {1.name}'.format(sql, app))
+    if app.pg_collkey:
+        init_pg_collkey(app, lsb_release)
 
     template_variables = get_template_variables(
         app,
         monitor_mode='true' if env.environment == 'production' else 'false',
         with_blog=with_blog)
 
-    require.users.user(app.name, shell='/bin/bash')
-    #require.postfix.server(env.host)
-    with shell_env(SYSTEMD_PAGER=''):
-        require.postgres.server()
-    require.deb.package('default-jre' if lsb_release == 'xenial' else 'openjdk-6-jre')
-    require.deb.packages(app.require_deb)
-    with shell_env(SYSTEMD_PAGER=''):
-        require.postgres.user(app.name, app.name)
-        require.postgres.database(app.name, app.name)
     require.files.directory(str(app.venv), use_sudo=True)
-
-    if app.pg_unaccent:
-        require.deb.package('postgresql-contrib')
-        sql = 'CREATE EXTENSION IF NOT EXISTS unaccent WITH SCHEMA public;' 
-        sudo('sudo -u postgres psql -c "{0}" -d {1.name}'.format(sql, app))
-
-    if app.pg_collkey:
-        init_pg_collkey(app, lsb_release)
-
     if lsb_release == 'precise':
         require.deb.package('python-dev')
         require.python.virtualenv(str(app.venv), use_sudo=True)
@@ -225,9 +220,6 @@ def deploy(app, with_blog=None, with_alembic=False, with_files=True):
         require.deb.packages(['python3-dev', 'python-virtualenv'])
         if not exists(str(app.venv / 'bin')):
             sudo('virtualenv -q --python=python3 %s' % app.venv)
-
-    require.files.directory(str(app.logs), use_sudo=True)
-
     with virtualenv(str(app.venv)):
         require.python.pip('6.0.6')
         with settings(sudo_prefix=env.sudo_prefix + ' -H'):  # set HOME for pip log/cache
@@ -317,7 +309,7 @@ def get_input(prompt):  # to facilitate mocking
 
 
 def upload_template_as_root(dest, template, context=None, mode=None, owner='root'):
-    if mode is not None:
+    if isinstance(mode, string_types):
         mode = int(mode, 8)
     upload_template(
         template, str(dest), context, use_jinja=True,

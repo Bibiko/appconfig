@@ -1,4 +1,4 @@
-# test_functional.py
+# test_tasks.py
 
 from __future__ import unicode_literals
 

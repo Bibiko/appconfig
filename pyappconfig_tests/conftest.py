@@ -10,11 +10,11 @@ else:
 
 import pytest
 
-FIXTURES = pathlib.Path(__file__).parent / 'fixtures'
+TEST_DIR = pathlib.Path(__file__).parent
 
 
 @pytest.fixture(scope='session')
-def config(filename=FIXTURES / 'apps.ini'):
+def config(filename=TEST_DIR / 'apps.ini'):
     from pyappconfig.config import Config
     return Config.from_file(filename)
 
