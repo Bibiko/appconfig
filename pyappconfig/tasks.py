@@ -357,7 +357,7 @@ def require_bibutils(app):  # pragma: no cover
         require.files.file(
             target,
             source=(PKG_DIR / 'bibutils' / 'bibutils_5.0_src.tgz').as_posix(),
-            use_sudo=True)
+            use_sudo=True, mode='')
 
         sudo('tar -xzvf {tgz} -C {app.home}'.format(tgz=target, app=app))
         with cd(str(app.home / 'bibutils_5.0')):
