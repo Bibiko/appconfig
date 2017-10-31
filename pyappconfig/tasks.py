@@ -31,7 +31,7 @@ from fabtools.files import upload_template
 from fabtools.python import virtualenv
 from pytz import timezone, utc
 
-from . import PKG_DIR, TEMPLATE_DIR, APPS, varnish, tools
+from . import PKG_DIR, APPS, varnish, tools
 
 __all__ = [
     'init',
@@ -44,11 +44,13 @@ __all__ = [
     'run_script',
 ]
 
-APP = None
+BIBUTILS_DIR = PKG_DIR / 'bibutils'
 
 PG_COLLKEY_DIR = PKG_DIR / 'pg_collkey-v0.5'
 
-BIBUTILS_DIR = PKG_DIR / 'bibutils'
+TEMPLATE_DIR = PKG_DIR / 'templates'
+
+APP = None
 
 
 env.use_ssh_config = True
@@ -317,9 +319,10 @@ def get_input(prompt):  # to facilitate mocking
 def upload_template_as_root(dest, template, context=None, mode=None, owner='root'):
     if mode is not None:
         mode = int(mode, 8)
-    upload_template(template, str(dest), context, use_jinja=True,
-                    template_dir=TEMPLATE_DIR.as_posix(), use_sudo=True, backup=False,
-                    mode=mode, chown=True, user=owner)
+    upload_template(
+        template, str(dest), context, use_jinja=True,
+        template_dir=TEMPLATE_DIR.as_posix(), use_sudo=True, backup=False,
+        mode=mode, chown=True, user=owner)
 
 
 def init_pg_collkey(app, lsb_release):
@@ -437,10 +440,8 @@ def copy_downloads(app, pattern='*'):
     require.files.directory(dl_dir, use_sudo=True, mode="755")
 
 
-def create_file_as_root(path, content, **kw):
-    kw.setdefault('owner', 'root')
-    kw.setdefault('group', 'root')
-    require.files.file(str(path), contents=content, use_sudo=True, **kw)
+def create_file_as_root(path, contents, owner='root', group='root', **kw):
+    require.files.file(str(path), contents, use_sudo=True, owner=owner, group=group, **kw)
 
 
 @task_app_from_environment

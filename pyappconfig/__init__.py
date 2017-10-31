@@ -6,11 +6,9 @@ from ._compat import pathlib
 
 from . import config
 
-__all__ = ['PKG_DIR', 'TEMPLATE_DIR', 'REPOS_DIR', 'CONFIG_FILE', 'APPS']
+__all__ = ['PKG_DIR', 'REPOS_DIR', 'CONFIG_FILE', 'APPS']
 
 PKG_DIR = pathlib.Path(__file__).parent
-
-TEMPLATE_DIR = PKG_DIR / 'templates'
 
 REPOS_DIR = PKG_DIR.parent
 
