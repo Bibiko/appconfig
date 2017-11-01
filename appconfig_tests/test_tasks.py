@@ -4,14 +4,14 @@ from __future__ import unicode_literals
 
 import pytest
 
-from pyappconfig import tasks
+from appconfig import tasks
 
 
 pytestmark = pytest.mark.usefixtures('APP')
 
 
 def test_deploy(mocker):
-    mocker.patch.multiple('pyappconfig.tasks',
+    mocker.patch.multiple('appconfig.tasks',
         time=mocker.Mock(),
         getpass=mocker.Mock(return_value='password'),
         confirm=mocker.Mock(return_value=True),

@@ -3,7 +3,7 @@ import os
 from fabric.api import cd, run, sudo
 from fabric.contrib import files, console
 
-from pyappconfig.tasks import *
+from appconfig.tasks import *
 
 LATEST_DUMP = 'https://cdstar.shh.mpg.de/bitstreams/EAEA0-54DF-D3B3-7041-0/glottolog.sql.gz'
 

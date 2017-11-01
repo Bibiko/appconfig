@@ -4,7 +4,7 @@ from setuptools import setup, find_packages
 
 
 setup(
-    name='pyappconfig',
+    name='appconfig',
     version='0.0',
     author='',
     author_email='lingweb@shh.mpg.de',
@@ -33,6 +33,6 @@ setup(
         'Programming Language :: Python :: 3.4',
     ],
     entry_points={
-        'console_scripts': ['appconfig=pyappconfig.__main__:main'],
+        'console_scripts': ['appconfig=appconfig.__main__:main'],
     },
 )

@@ -2,7 +2,7 @@
 
 from __future__ import unicode_literals
 
-from pyappconfig import __main__
+from appconfig import __main__
 
 
 def test_check():

@@ -1,4 +1,4 @@
-# tasks.py - top-level fabric tasks: from pyappconfig.tasks import *
+# tasks.py - top-level fabric tasks: from appconfig.tasks import *
 
 """
 fabric tasks

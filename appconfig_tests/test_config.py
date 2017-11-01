@@ -2,7 +2,7 @@
 
 import pytest
 
-from pyappconfig import config
+from appconfig import config
 
 
 def test_app():

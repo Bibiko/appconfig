@@ -10,12 +10,13 @@ else:
 
 import pytest
 
+from appconfig.config import Config
+
 TEST_DIR = pathlib.Path(__file__).parent
 
 
 @pytest.fixture(scope='session')
 def config(filename=TEST_DIR / 'apps.ini'):
-    from pyappconfig.config import Config
     return Config.from_file(filename)
 
 
@@ -26,9 +27,9 @@ def app(config, name='testapp'):
 
 @pytest.fixture
 def APP(mocker, app):
-    yield mocker.patch('pyappconfig.tasks.APP', app)
+    yield mocker.patch('appconfig.tasks.APP', app)
 
 
 @pytest.fixture
 def execute(mocker):
-    yield mocker.patch('pyappconfig.tasks.execute', new_callable=mocker.Mock)
+    yield mocker.patch('appconfig.tasks.execute', new_callable=mocker.Mock)

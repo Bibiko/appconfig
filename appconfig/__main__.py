@@ -25,7 +25,7 @@ def check(args):  # pragma: no cover
 
 
 def main():  # pragma: no cover
-    parser = ArgumentParserWithLogging('pyappconfig')
+    parser = ArgumentParserWithLogging('appconfig')
     sys.exit(parser.main())
 
 

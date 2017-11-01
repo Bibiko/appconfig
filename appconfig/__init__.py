@@ -1,4 +1,4 @@
-# pyappconfig - remote control for DLCE apps
+# appconfig - remote control for DLCE apps
 
 from __future__ import unicode_literals
 

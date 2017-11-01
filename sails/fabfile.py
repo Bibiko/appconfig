@@ -1,3 +1,3 @@
-from pyappconfig.tasks import *
+from appconfig.tasks import *
 
 init()
