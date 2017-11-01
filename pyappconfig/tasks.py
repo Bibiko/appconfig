@@ -261,7 +261,7 @@ def deploy(app, with_blog=None, with_alembic=False, with_files=True):
         # revisions run in separate transactions!
         supervisor(app, 'pause', template_variables)
         with virtualenv(str(app.venv)), cd(str(app.src)):
-            sudo('%s -n production upgrade head' % app.venv_bin / 'alembic', user=app.name)
+            sudo('%s -n production upgrade head' % (app.venv_bin / 'alembic'), user=app.name)
 
         if confirm('Vacuum database?', default=False):
             flag = '-f ' if confirm('VACUUM FULL?', default=False) else ''
