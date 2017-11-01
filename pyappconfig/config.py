@@ -40,6 +40,7 @@ class ConfigParser(configparser.ConfigParser):
     _init_defaults = {
         'delimiters': ('=',),
         'comment_prefixes': ('#',),
+        'inline_comment_prefixes': ('#',),
         'interpolation': configparser.ExtendedInterpolation(),
     }
 
