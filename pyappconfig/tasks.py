@@ -207,13 +207,13 @@ def deploy(app, with_blog=None, with_alembic=False, with_files=True):
         with_blog=with_blog)
 
     if lsb_release == 'precise':
-        python = '2'
+        python_bin = 'python2'
         require.deb.package('python-dev')
     else:
-        python = '3'
+        python_bin = 'python3'
         require.deb.packages(['python3-dev', 'python-virtualenv'])
     require.directory(str(app.venv), use_sudo=True)
-    require.python.virtualenv(str(app.venv), venv_python=python, use_sudo=True)
+    require.python.virtualenv(str(app.venv), venv_python=python_bin, use_sudo=True)
     with virtualenv(str(app.venv)):
         require.python.pip('6.0.6')
         with settings(sudo_prefix=env.sudo_prefix + ' -H'):  # set HOME for pip log/cache
@@ -240,7 +240,7 @@ def deploy(app, with_blog=None, with_alembic=False, with_files=True):
 
     #require.nginx.site
     if env.environment == 'test':
-        upload_template_as_root('/etc/nginx/sites-available/default', 'nginx-default.conf')
+        upload_template_as_root(app.nginx_default_site, 'nginx-default.conf')
         template_variables['SITE'] = False
         upload_template_as_root(app.nginx_location, 'nginx-app.conf', template_variables)
     elif env.environment == 'production':

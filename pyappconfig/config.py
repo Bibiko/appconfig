@@ -88,7 +88,8 @@ class App(argparse.Namespace):
         'home', 'config', 'www',
         'venv', 'venv_bin', 'gunicorn', 'src',
         'logs', 'error_log', 'logrotate',
-        'supervisor', 'nginx_site', 'nginx_location', 'nginx_htpasswd',
+        'supervisor',
+        'nginx_default_site', 'nginx_site', 'nginx_location', 'nginx_htpasswd',
     ], pathlib.PurePosixPath))
 
     def __init__(self, **kwargs):
