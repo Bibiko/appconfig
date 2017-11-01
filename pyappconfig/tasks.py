@@ -53,7 +53,7 @@ TEMPLATE_DIR = PKG_DIR / 'templates'
 APP = None
 
 
-env.use_ssh_config = True
+env.use_ssh_config = True  # configure your username in .ssh/config
 
 
 def init(app_name=None):
@@ -92,7 +92,7 @@ def task_app_from_environment(func_or_environment):
 
 @task
 def bootstrap():
-    require.deb.packages(['vim', 'tree', 'nginx', 'open-vm-tools'])
+    require.deb.packages(['vim', 'tree', 'open-vm-tools'])
 
 
 @task_app_from_environment
@@ -111,6 +111,7 @@ def supervisor(app, command, template_variables=None):
     """
     .. seealso: http://serverfault.com/a/479754
     """
+    # TODO: consider fabtools.supervisor
     template_variables = template_variables or get_template_variables(app)
     template_variables['PAUSE'] = {'pause': True, 'run': False}[command]
     upload_template_as_root(
@@ -181,7 +182,7 @@ def deploy(app, with_blog=None, with_alembic=False, with_files=True):
     if app.workers > 3 and env.environment == 'test':
         app.workers = 3
 
-    lsb_release = run('lsb_release -a', warn_only=True)
+    lsb_release = run('lsb_release --all', warn_only=True)
     for codename in ['precise', 'trusty', 'xenial']:
         if codename in lsb_release:
             lsb_release = codename
@@ -191,54 +192,41 @@ def deploy(app, with_blog=None, with_alembic=False, with_files=True):
             # if this were the case, we'd be in a test!
             raise ValueError('unsupported platform: %r' % lsb_release)
 
+    jre_deb = 'default-jre' if lsb_release == 'xenial' else 'openjdk-6-jre'
+    python_deb = 'python-dev' if lsb_release == 'precise' else 'python3-dev'
+    require.deb.packages(app.require_deb + [jre_deb, python_deb])
+
     require.users.user(app.name, shell='/bin/bash')
-    require.deb.packages(app.require_deb)
-    require.deb.package('default-jre' if lsb_release == 'xenial' else 'openjdk-6-jre')
+    require_bibutils(app.home)
     require.directory(str(app.logs), use_sudo=True)
+
+    template_variables = get_template_variables(app,
+        monitor_mode='true' if env.environment == 'production' else 'false',
+        with_blog=with_blog)
 
     require_postgres(app.name,
         user_name=app.name, user_password=app.name,
         pg_unaccent=app.pg_unaccent, pg_collkey=app.pg_collkey,
         lsb_release=lsb_release)
 
-    template_variables = get_template_variables(
-        app,
-        monitor_mode='true' if env.environment == 'production' else 'false',
-        with_blog=with_blog)
-
-    if lsb_release == 'precise':
-        python_bin = 'python2'
-        require.deb.package('python-dev')
-    else:
-        python_bin = 'python3'
-        require.deb.packages(['python3-dev', 'python-virtualenv'])
-    require.directory(str(app.venv), use_sudo=True)
-    require.python.virtualenv(str(app.venv), venv_python=python_bin, use_sudo=True)
-    with virtualenv(str(app.venv)):
-        require.python.pip('6.0.6')
-        with settings(sudo_prefix=env.sudo_prefix + ' -H'):  # set HOME for pip log/cache
-            require.python.package(app.app_pkg, use_sudo=True)
-            require.python.packages(app.require_pip, use_sudo=True)
-        sudo('webassets -m %s.assets build' % app.name)
-        res = sudo('python -c "import clld; print(clld.__file__)"')
-        assert res.startswith('/usr/venvs') and '__init__.py' in res
-        template_variables['clld_dir'] = '/'.join(res.split('/')[:-1])
-
-    require_bibutils(app.home)
+    template_variables['clld_dir'] = require_venv(app.venv,
+        venv_python='python2' if lsb_release == 'precise' else 'python3',
+        require_packages=[app.app_pkg] + app.require_pip,
+        assets_name=app.name)
 
     #
     # configure nginx:
     #
-    #require.nginx.server()
-    require.directory(str(app.nginx_location.parent),
-        owner='root', group='root', use_sudo=True)
+    with shell_env(SYSTEMD_PAGER=''):
+        require.nginx.server()
+    require.directory(str(app.nginx_location.parent), owner='root', group='root', use_sudo=True)
 
     restricted, auth = http_auth(app)
     if restricted:
         template_variables['auth'] = auth
     template_variables['admin_auth'] = auth
 
-    #require.nginx.site
+    # TODO: consider require.nginx.site
     if env.environment == 'test':
         upload_template_as_root(app.nginx_default_site, 'nginx-default.conf')
         template_variables['SITE'] = False
@@ -252,13 +240,13 @@ def deploy(app, with_blog=None, with_alembic=False, with_files=True):
     service.reload('nginx')
 
     if not with_alembic and confirm('Recreate database?', default=False):
-        db_name = get_input('from db [{0.name}]: '.format(app))
-        local('pg_dump -x -O -f /tmp/{0.name}.sql {1}'.format(app, db_name or app.name))
-        local('gzip -f /tmp/{0.name}.sql'.format(app))
+        db_name = get_input('from db [{0}]: '.format(app.name))
+        local('pg_dump -x -O -f /tmp/{0}.sql {1}'.format(app.name, db_name or app.name))
+        local('gzip -f /tmp/{0}.sql'.format(app.name))
         require.file(
-            '/tmp/{0.name}.sql.gz'.format(app),
-            source="/tmp/{0.name}.sql.gz".format(app))
-        sudo('gunzip -f /tmp/{0.name}.sql.gz'.format(app))
+            '/tmp/{0}.sql.gz'.format(app.name),
+            source="/tmp/{0}.sql.gz".format(app.name))
+        sudo('gunzip -f /tmp/{0}.sql.gz'.format(app.name))
         supervisor(app, 'pause', template_variables)
 
         if postgres.database_exists(app.name):
@@ -267,20 +255,17 @@ def deploy(app, with_blog=None, with_alembic=False, with_files=True):
                 pg_unaccent=app.pg_unaccent, pg_collkey=app.pg_collkey,
                 lsb_release=lsb_release, drop=True)
 
-        sudo('sudo -u {0.name} psql -f /tmp/{0.name}.sql -d {0.name}'.format(app))
+        sudo('psql -f /tmp/{0}.sql -d {0}'.format(app.name), user=app.name)
     elif exists(app.src / 'alembic.ini') and confirm('Upgrade database?', default=False):
         # Note: stopping the app is not strictly necessary, because the alembic
         # revisions run in separate transactions!
         supervisor(app, 'pause', template_variables)
         with virtualenv(str(app.venv)), cd(str(app.src)):
-            sudo('sudo -u {0.name} {1} -n production upgrade head'.format(
-                app, app.venv_bin / 'alembic'))
+            sudo('%s -n production upgrade head' % app.venv_bin / 'alembic', user=app.name)
 
         if confirm('Vacuum database?', default=False):
-            if confirm('VACUUM FULL?', default=False):
-                sudo('sudo -u postgres vacuumdb -f -z -d %s' % app.name)
-            else:
-                sudo('sudo -u postgres vacuumdb -z -d %s' % app.name)
+            flag = '-f ' if confirm('VACUUM FULL?', default=False) else ''
+            sudo('vacuumdb %s-z -d %s' % (flag, app.name), user=postgres)
 
     template_variables['TEST'] = {'test': True, 'production': False}[env.environment]
     # We only set add a setting clld.files, if the corresponding directory exists;
@@ -293,35 +278,8 @@ def deploy(app, with_blog=None, with_alembic=False, with_files=True):
     supervisor(app, 'run', template_variables)
 
     time.sleep(5)
-    res = run('curl http://localhost:%s/_ping' % app.port)
+    res = run('wget -q -O - http://localhost:%s/_ping' % app.port)
     assert json.loads(res)['status'] == 'ok'
-
-
-def require_postgres(database_name, user_name, user_password, pg_unaccent, pg_collkey,
-                     lsb_release, drop=False):
-    if drop:
-        with cd('/var/lib/postgresql'):
-                sudo('sudo -u postgres dropdb %s' % database_name)
-    with shell_env(SYSTEMD_PAGER=''):
-        require.postgres.server()
-        require.postgres.user(user_name, password=user_password)
-        require.postgres.database(database_name, owner=user_name)
-    if pg_unaccent:
-        require.deb.package('postgresql-contrib')
-        sql = 'CREATE EXTENSION IF NOT EXISTS unaccent WITH SCHEMA public;' 
-        sudo('sudo -u postgres psql -c "{0}" -d {1.name}'.format(sql, app))
-    if pg_collkey:
-        pg_version = '9.1' if lsb_release == 'precise' else '9.3'
-        if not exists('/usr/lib/postgresql/%s/lib/collkey_icu.so' % pg_version):
-            require.deb.packages(['postgresql-server-dev-%s' % pg_version, 'libicu-dev'])
-            with cd('/tmp'):
-                upload_template_as_root('Makefile', 'pg_collkey_Makefile', {'pg_version': pg_version})
-                require.file('collkey_icu.c', source=str(PG_COLLKEY_DIR / 'collkey_icu.c'))
-                sudo('make')
-                sudo('make install')
-        with cd('/tmp'):
-            require.file('collkey_icu.sql', source=str(PG_COLLKEY_DIR / 'collkey_icu.sql'))
-            sudo('sudo -u tgres psql -f collkey_icu.sql -d %s' % database_name)
 
 
 def require_bibutils(directory):  # pragma: no cover
@@ -339,9 +297,48 @@ def require_bibutils(directory):  # pragma: no cover
 
         sudo('tar -xzvf %s -C %s' % (target, directory))
         with cd(str(directory / 'bibutils_5.0')):
-            sudo('./configure')
-            sudo('make')
+            run('./configure')
+            run('make')
             sudo('make install')
+
+
+def require_postgres(database_name, user_name, user_password, pg_unaccent, pg_collkey,
+                     lsb_release, drop=False):
+    if drop:
+        with cd('/var/lib/postgresql'):
+                sudo('dropdb %s' % database_name, user='postgres')
+    with shell_env(SYSTEMD_PAGER=''):
+        require.postgres.server()
+        require.postgres.user(user_name, password=user_password)
+        require.postgres.database(database_name, owner=user_name)
+    if pg_unaccent:
+        sql = 'CREATE EXTENSION IF NOT EXISTS unaccent WITH SCHEMA public;' 
+        sudo('psql -c "{0}" -d {1.name}'.format(sql, app), user='postgres')
+    if pg_collkey:
+        pg_version = '9.1' if lsb_release == 'precise' else '9.3'
+        if not exists('/usr/lib/postgresql/%s/lib/collkey_icu.so' % pg_version):
+            require.deb.packages(['postgresql-server-dev-%s' % pg_version, 'libicu-dev'])
+            with cd('/tmp'):
+                upload_template_as_root('Makefile', 'pg_collkey_Makefile', {'pg_version': pg_version})
+                require.file('collkey_icu.c', source=str(PG_COLLKEY_DIR / 'collkey_icu.c'))
+                sudo('make')
+                sudo('make install')
+        with cd('/tmp'):
+            require.file('collkey_icu.sql', source=str(PG_COLLKEY_DIR / 'collkey_icu.sql'))
+            sudo('psql -f collkey_icu.sql -d %s' % database_name, user='postgres')
+
+
+def require_venv(directory, venv_python, require_packages, assets_name):
+    directory = str(directory)
+    require.directory(directory, use_sudo=True)
+    with settings(sudo_prefix=env.sudo_prefix + ' -H'):  # set HOME for pip log/cache
+        require.python.virtualenv(directory, venv_python=venv_python, use_sudo=True)
+        with virtualenv(directory):
+            require.python.packages(require_packages, use_sudo=True)
+            sudo('webassets -m %s.assets build' % assets_name)
+            res = sudo('python -c "import clld; print(clld.__file__)"')
+            assert res.startswith('/usr/venvs') and '__init__.py' in res
+            return '/'.join(res.split('/')[:-1])
 
 
 def get_input(prompt):  # to facilitate mocking
