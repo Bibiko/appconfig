@@ -79,7 +79,7 @@ def cache(app):  # pragma: no cover
     else:
         tasks.create_file_as_root(sites_vcl, include + '\n')
 
-    require.files.directory(site_config_dir, use_sudo=True)
+    require.directory(site_config_dir, use_sudo=True)
     tasks.create_file_as_root(site_config, SITE_VCL_TEMPLATE.format(app=app))
     service.restart('varnish')
 

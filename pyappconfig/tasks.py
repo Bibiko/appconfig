@@ -168,7 +168,7 @@ def maintenance(app, hours=2, template_variables=None):
     ts = utc.localize(datetime.utcnow() + timedelta(hours=hours))
     ts = ts.astimezone(timezone('Europe/Berlin')).strftime('%Y-%m-%d %H:%M %Z%z')
     template_variables['timestamp'] = ts
-    require.files.directory(str(app.www), use_sudo=True)
+    require.directory(str(app.www), use_sudo=True)
     upload_template_as_root(app.www / '503.html', '503.html', template_variables)
 
 
@@ -178,7 +178,7 @@ def deploy(app, with_blog=None, with_alembic=False, with_files=True):
     if with_blog is None:
         with_blog = app.with_blog
 
-    if env.environment == 'test' and app.workers > 3:
+    if app.workers > 3 and env.environment == 'test':
         app.workers = 3
 
     lsb_release = run('lsb_release -a', warn_only=True)
@@ -194,49 +194,43 @@ def deploy(app, with_blog=None, with_alembic=False, with_files=True):
     require.users.user(app.name, shell='/bin/bash')
     require.deb.packages(app.require_deb)
     require.deb.package('default-jre' if lsb_release == 'xenial' else 'openjdk-6-jre')
-    require.files.directory(str(app.logs), use_sudo=True)
+    require.directory(str(app.logs), use_sudo=True)
 
-    with shell_env(SYSTEMD_PAGER=''):
-        require.postgres.server()
-        require.postgres.user(app.name, app.name)
-        require.postgres.database(app.name, app.name)
-    if app.pg_unaccent:
-        require.deb.package('postgresql-contrib')
-        sql = 'CREATE EXTENSION IF NOT EXISTS unaccent WITH SCHEMA public;' 
-        sudo('sudo -u postgres psql -c "{0}" -d {1.name}'.format(sql, app))
-    if app.pg_collkey:
-        init_pg_collkey(app, lsb_release)
+    require_postgres(app.name,
+        user_name=app.name, user_password=app.name,
+        pg_unaccent=app.pg_unaccent, pg_colkey=app.pg_colkey,
+        lsb_release=lsb_release)
 
     template_variables = get_template_variables(
         app,
         monitor_mode='true' if env.environment == 'production' else 'false',
         with_blog=with_blog)
 
-    require.files.directory(str(app.venv), use_sudo=True)
     if lsb_release == 'precise':
+        python = '2'
         require.deb.package('python-dev')
-        require.python.virtualenv(str(app.venv), use_sudo=True)
     else:
+        python = '3'
         require.deb.packages(['python3-dev', 'python-virtualenv'])
-        if not exists(str(app.venv / 'bin')):
-            sudo('virtualenv -q --python=python3 %s' % app.venv)
+    require.directory(str(app.venv), use_sudo=True)
+    require.python.virtualenv(str(app.venv), venv_python=python, use_sudo=True)
     with virtualenv(str(app.venv)):
         require.python.pip('6.0.6')
         with settings(sudo_prefix=env.sudo_prefix + ' -H'):  # set HOME for pip log/cache
+            require.python.package(app.app_pkg, use_sudo=True)
             require.python.packages(app.require_pip, use_sudo=True)
-            app_pkg = '-e git+git://github.com/clld/%s.git#egg=%s' % (app.name, app.name)
-            require.python.package(app_pkg, use_sudo=True)
         sudo('webassets -m %s.assets build' % app.name)
         res = sudo('python -c "import clld; print(clld.__file__)"')
         assert res.startswith('/usr/venvs') and '__init__.py' in res
         template_variables['clld_dir'] = '/'.join(res.split('/')[:-1])
 
-    require_bibutils(app)
+    require_bibutils(app.home)
 
     #
     # configure nginx:
     #
-    require.files.directory(str(app.nginx_location.parent),
+    #require.nginx.server()
+    require.directory(str(app.nginx_location.parent),
         owner='root', group='root', use_sudo=True)
 
     restricted, auth = http_auth(app)
@@ -244,6 +238,7 @@ def deploy(app, with_blog=None, with_alembic=False, with_files=True):
         template_variables['auth'] = auth
     template_variables['admin_auth'] = auth
 
+    #require.nginx.site
     if env.environment == 'test':
         upload_template_as_root('/etc/nginx/sites-available/default', 'nginx-default.conf')
         template_variables['SITE'] = False
@@ -260,19 +255,17 @@ def deploy(app, with_blog=None, with_alembic=False, with_files=True):
         db_name = get_input('from db [{0.name}]: '.format(app))
         local('pg_dump -x -O -f /tmp/{0.name}.sql {1}'.format(app, db_name or app.name))
         local('gzip -f /tmp/{0.name}.sql'.format(app))
-        require.files.file(
+        require.file(
             '/tmp/{0.name}.sql.gz'.format(app),
             source="/tmp/{0.name}.sql.gz".format(app))
         sudo('gunzip -f /tmp/{0.name}.sql.gz'.format(app))
         supervisor(app, 'pause', template_variables)
 
         if postgres.database_exists(app.name):
-            with cd('/var/lib/postgresql'):
-                sudo('sudo -u postgres dropdb %s' % app.name)
-
-            require.postgres.database(app.name, app.name)
-            if app.pg_collkey:
-                init_pg_collkey(app, lsb_release)
+            require_postgres(app.name,
+                user_name=app.name, user_password=app.name,
+                pg_unaccent=app.pg_unaccent, pg_colkey=app.pg_colkey,
+                lsb_release=lsb_release, drop=True)
 
         sudo('sudo -u {0.name} psql -f /tmp/{0.name}.sql -d {0.name}'.format(app))
     elif exists(app.src / 'alembic.ini') and confirm('Upgrade database?', default=False):
@@ -304,6 +297,53 @@ def deploy(app, with_blog=None, with_alembic=False, with_files=True):
     assert json.loads(res)['status'] == 'ok'
 
 
+def require_postgres(database_name, user_name, user_password, pg_unacccent, pg_collkey,
+                     lsb_release, drop=False):
+    if drop:
+        with cd('/var/lib/postgresql'):
+                sudo('sudo -u postgres dropdb %s' % database_name)
+    with shell_env(SYSTEMD_PAGER=''):
+        require.postgres.server()
+        require.postgres.user(user_name, password=user_password)
+        require.postgres.database(database_name, owner=user_name)
+    if pg_unaccent:
+        require.deb.package('postgresql-contrib')
+        sql = 'CREATE EXTENSION IF NOT EXISTS unaccent WITH SCHEMA public;' 
+        sudo('sudo -u postgres psql -c "{0}" -d {1.name}'.format(sql, app))
+    if pg_collkey:
+        pg_version = '9.1' if lsb_release == 'precise' else '9.3'
+        if not exists('/usr/lib/postgresql/%s/lib/collkey_icu.so' % pg_version):
+            require.deb.packages(['postgresql-server-dev-%s' % pg_version, 'libicu-dev'])
+            with cd('/tmp'):
+                upload_template_as_root('Makefile', 'pg_collkey_Makefile', {'pg_version': pg_version})
+                require.file('collkey_icu.c', source=str(PG_COLLKEY_DIR / 'collkey_icu.c'))
+                sudo('make')
+                sudo('make install')
+        with cd('/tmp'):
+            require.file('collkey_icu.sql', source=str(PG_COLLKEY_DIR / 'collkey_icu.sql'))
+            sudo('sudo -u tgres psql -f collkey_icu.sql -d %s' % database_name)
+
+
+def require_bibutils(directory):  # pragma: no cover
+    """
+    tar -xzvf bibutils_5.0_src.tgz -C {app.home}
+    cd {app.home}/bibutils_5.0
+    configure
+    make
+    sudo make install
+    """
+    if not exists('/usr/local/bin/bib2xml'):
+        source = BIBUTILS_DIR / 'bibutils_5.0_src.tgz'
+        target = '/tmp/%s' % source.name
+        require.file(target, source=source.as_posix(), use_sudo=True, mode='')
+
+        sudo('tar -xzvf %s -C %s' % (target, directory))
+        with cd(str(directory / 'bibutils_5.0')):
+            sudo('./configure')
+            sudo('make')
+            sudo('make install')
+
+
 def get_input(prompt):  # to facilitate mocking
     return input(prompt)
 
@@ -315,42 +355,6 @@ def upload_template_as_root(dest, template, context=None, mode=None, owner='root
         template, str(dest), context, use_jinja=True,
         template_dir=TEMPLATE_DIR.as_posix(), use_sudo=True, backup=False,
         mode=mode, chown=True, user=owner)
-
-
-def init_pg_collkey(app, lsb_release):
-    assert app.pg_collkey
-    pg_version = '9.1' if lsb_release == 'precise' else '9.3'
-    if not exists('/usr/lib/postgresql/%s/lib/collkey_icu.so' % pg_version):
-        require.deb.packages(['postgresql-server-dev-%s' % pg_version, 'libicu-dev'])
-        with cd('/tmp'):
-            upload_template_as_root('Makefile', 'pg_collkey_Makefile', {'pg_version': pg_version})
-            require.files.file('collkey_icu.c', source=str(PG_COLLKEY_DIR / 'collkey_icu.c'))
-            sudo('make')
-            sudo('make install')
-
-    with cd('/tmp'):
-        require.files.file('collkey_icu.sql', source=str(PG_COLLKEY_DIR / 'collkey_icu.sql'))
-        sudo('sudo -u tgres psql -f collkey_icu.sql -d {0.name}'.format(app))
-
-
-def require_bibutils(app):  # pragma: no cover
-    """
-    tar -xzvf bibutils_5.0_src.tgz -C /home/{app.name}
-    cd /home/{app.name}/bibutils_5.0
-    configure
-    make
-    sudo make install
-    """
-    if not exists('/usr/local/bin/bib2xml'):
-        source = BIBUTILS_DIR / 'bibutils_5.0_src.tgz'
-        target = '/tmp/%s' % source.name
-        require.files.file(target, source=source.as_posix(), use_sudo=True, mode='')
-
-        sudo('tar -xzvf {tgz} -C {app.home}'.format(tgz=target, app=app))
-        with cd(str(app.home / 'bibutils_5.0')):
-            sudo('./configure')
-            sudo('make')
-            sudo('make install')
 
 
 def http_auth(app):
@@ -413,27 +417,27 @@ def uninstall(app):  # pragma: no cover
 def create_downloads(app):
     """create all configured downloads"""
     dl_dir = app.src / app.name / 'static' / 'download'
-    require.files.directory(dl_dir, use_sudo=True, mode="777")
+    require.directory(dl_dir, use_sudo=True, mode="777")
     # run the script to create the exports from the database as glottolog3 user
     run_script(app, 'create_downloads')
-    require.files.directory(dl_dir, use_sudo=True, mode="755")
+    require.directory(dl_dir, use_sudo=True, mode="755")
 
 
 @task_app_from_environment
 def copy_downloads(app, pattern='*'):
     """copy downloads for the app"""
     dl_dir = app.src / app.name / 'static' / 'download'
-    require.files.directory(dl_dir, use_sudo=True, mode="777")
+    require.directory(dl_dir, use_sudo=True, mode="777")
     local_dl_dir = pathlib.Path(import_module(app.name).__file__).parent / 'static' / 'download'
     for f in local_dl_dir.glob(pattern):
         target = dl_dir / f.name
         create_file_as_root(target, open(f.as_posix()).read())
         sudo('chown %s:%s %s' % (app.name, app.name, target))
-    require.files.directory(dl_dir, use_sudo=True, mode="755")
+    require.directory(dl_dir, use_sudo=True, mode="755")
 
 
 def create_file_as_root(path, contents, owner='root', group='root', **kw):
-    require.files.file(str(path), contents, use_sudo=True, owner=owner, group=group, **kw)
+    require.file(str(path), contents, use_sudo=True, owner=owner, group=group, **kw)
 
 
 @task_app_from_environment
