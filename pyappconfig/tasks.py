@@ -198,7 +198,7 @@ def deploy(app, with_blog=None, with_alembic=False, with_files=True):
 
     require_postgres(app.name,
         user_name=app.name, user_password=app.name,
-        pg_unaccent=app.pg_unaccent, pg_colkey=app.pg_colkey,
+        pg_unaccent=app.pg_unaccent, pg_collkey=app.pg_collkey,
         lsb_release=lsb_release)
 
     template_variables = get_template_variables(
@@ -264,7 +264,7 @@ def deploy(app, with_blog=None, with_alembic=False, with_files=True):
         if postgres.database_exists(app.name):
             require_postgres(app.name,
                 user_name=app.name, user_password=app.name,
-                pg_unaccent=app.pg_unaccent, pg_colkey=app.pg_colkey,
+                pg_unaccent=app.pg_unaccent, pg_collkey=app.pg_collkey,
                 lsb_release=lsb_release, drop=True)
 
         sudo('sudo -u {0.name} psql -f /tmp/{0.name}.sql -d {0.name}'.format(app))
@@ -297,7 +297,7 @@ def deploy(app, with_blog=None, with_alembic=False, with_files=True):
     assert json.loads(res)['status'] == 'ok'
 
 
-def require_postgres(database_name, user_name, user_password, pg_unacccent, pg_collkey,
+def require_postgres(database_name, user_name, user_password, pg_unaccent, pg_collkey,
                      lsb_release, drop=False):
     if drop:
         with cd('/var/lib/postgresql'):
