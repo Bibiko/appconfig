@@ -16,6 +16,8 @@ from __future__ import unicode_literals
 import os
 import time
 import json
+import platform
+import tempfile
 import functools
 from getpass import getpass
 from datetime import datetime, timedelta
@@ -41,6 +43,8 @@ __all__ = [
     'run_script', 'create_downloads', 'copy_downloads', 'copy_rdfdump',
     'pipfreeze',
 ]
+
+PLATFORM = platform.system().lower()
 
 BIBUTILS_DIR = PKG_DIR / 'bibutils'
 
@@ -119,7 +123,7 @@ def sudo_upload_template(template, dest, context=None, mode=None, user='root', *
 
 
 @task_app_from_environment
-def deploy(app, with_blog=None, with_alembic=False, with_files=True):
+def deploy(app, with_blog=None, with_alembic=False):
     """deploy the app"""
     lsb_release = run('lsb_release --all', warn_only=True)
     for codename in ['precise', 'trusty', 'xenial']:
@@ -159,30 +163,9 @@ def deploy(app, with_blog=None, with_alembic=False, with_files=True):
         logrotate=app.logrotate, clld_dir=clld_dir, deploy_duration=app.deploy_duration)
 
     if not with_alembic and confirm('Recreate database?', default=False):
-        db_name = prompt('from db:', default=app.name)
-        archive = '/tmp/%s.sql.gz' % db_name
-        local('pg_dump --no-owner --no-acl -Z 9 -f %s %s' % (archive, db_name))
-        require.file(archive, source=archive)
-
-        supervisor(app, 'pause', context=ctx)
-        if postgres.database_exists(app.name):
-            require_postgres(app.name,
-                user_name=app.name, user_password=app.name,
-                pg_unaccent=app.pg_unaccent, pg_collkey=app.pg_collkey,
-                lsb_release=lsb_release, drop=True)
-        sudo('gunzip -f %s' % archive)
-        dump, _ = os.path.splitext(archive)
-        sudo('psql -f %s -d %s' % (dump, app.name), user=app.name)
+        upload_local_sqldump(app, ctx, lsb_release)
     elif exists(app.src / 'alembic.ini') and confirm('Upgrade database?', default=False):
-        # Note: stopping the app is not strictly necessary, because the alembic
-        # revisions run in separate transactions!
-        supervisor(app, 'pause', context=ctx)
-        with virtualenv(str(app.venv)), cd(str(app.src)):
-            sudo('%s -n production upgrade head' % (app.venv_bin / 'alembic'), user=app.name)
-
-        if confirm('Vacuum database?', default=False):
-            flag = '-f ' if confirm('VACUUM FULL?', default=False) else ''
-            sudo('vacuumdb %s-z -d %s' % (flag, app.name), user=postgres)
+        alembic_upgrade_head(app, ctx)
 
     # We only set add a setting clld.files, if the corresponding directory exists;
     # otherwise the app would throw an error on startup.
@@ -233,7 +216,7 @@ def require_postgres(database_name, user_name, user_password, pg_unaccent, pg_co
 
     if pg_collkey:
         pg_dir, = run('find /usr/lib/postgresql/ -mindepth 1 -maxdepth 1 -type d').splitlines()
-        pg_version = os.path.basename(pg_dir)
+        pg_version = pathlib.PurePosixPath(pg_dir).name
         if not exists('/usr/lib/postgresql/%s/lib/collkey_icu.so' % pg_version):
             require.deb.packages(['postgresql-server-dev-%s' % pg_version, 'libicu-dev'])
             with cd('/tmp'):
@@ -301,6 +284,42 @@ def http_auth(username, htpasswd_file):
     return auth if userpass else '', auth
 
 
+def upload_local_sqldump(app, ctx, lsb_release):
+    db_name = prompt('Replace with dump of local database:', default=app.name)
+    sqldump = pathlib.Path(tempfile.mktemp(suffix='.sql.gz', prefix='%s-' % db_name))
+    target = pathlib.PurePosixPath('/tmp') / sqldump.name
+
+    db_user = '-U postgres ' if PLATFORM == 'windows' else ''
+    local('pg_dump %s--no-owner --no-acl -Z 9 -f %s %s' % (db_user, sqldump, db_name))
+
+    require.file(str(target), source=sqldump)
+    sqldump.unlink()
+
+    supervisor(app, 'pause', context=ctx)
+
+    if postgres.database_exists(app.name):
+        require_postgres(app.name,
+            user_name=app.name, user_password=app.name,
+            pg_unaccent=app.pg_unaccent, pg_collkey=app.pg_collkey,
+            lsb_release=lsb_release, drop=True)
+
+    sudo('gunzip -c %s | psql -d %s' % (target, app.name), user=app.name)
+    run('rm %s' % target)
+
+
+def alembic_upgrade_head(app, ctx):
+    # Note: stopping the app is not strictly necessary, because the alembic
+    # revisions run in separate transactions!
+    supervisor(app, 'pause', context=ctx)
+
+    with virtualenv(str(app.venv)), cd(str(app.src)):
+        sudo('%s -n production upgrade head' % (app.venv_bin / 'alembic'), user=app.name)
+
+    if confirm('Vacuum database?', default=False):
+        flag = '-f ' if confirm('VACUUM FULL?', default=False) else ''
+        sudo('vacuumdb %s-z -d %s' % (flag, app.name), user='postgres')
+
+
 @task_app_from_environment
 def start(app):
     """start app by changing the supervisord config"""
@@ -353,7 +372,7 @@ def maintenance(app, hours=2, ctx=None):
 def uninstall(app):  # pragma: no cover
     """uninstall the app"""
     for path in [app.supervisor, app.nginx_location, app.nginx_site]:
-        if exists(str(path)):
+        if exists(path):
             sudo('rm %s' % path)
 
     service.reload('nginx')
@@ -415,7 +434,7 @@ def copy_rdfdump(app):
 @task_app_from_environment
 def pipfreeze(app):
     """get installed versions"""
-    with virtualenv(app.venv):
+    with virtualenv(str(app.venv)):
         stdout = run('pip freeze', combine_stderr=False)
 
     def iterlines(lines):
