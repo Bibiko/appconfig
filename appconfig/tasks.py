@@ -14,7 +14,6 @@ and run the init function, passing an app name defined in the global clld app co
 from __future__ import unicode_literals
 
 import os
-import io
 import time
 import json
 import functools
@@ -22,7 +21,7 @@ from getpass import getpass
 from datetime import datetime, timedelta
 from importlib import import_module
 
-from ._compat import pathlib, string_types, input, iteritems
+from ._compat import pathlib, iteritems
 
 from fabric.api import (
     env, task, execute, settings, shell_env, prompt, sudo, run, cd, local)
@@ -105,8 +104,7 @@ def template_context(app, workers=3, with_blog=False,):
             ('blogpassword', ''),
         ]:
             ctx[key] = (os.environ.get(('%s_%s' % (app.name, key)).upper())
-                        or prompt('Blog %s:' % key[4:], default=default)
-                        or default)
+                        or prompt('Blog %s:' % key[4:], default=default))
         assert ctx['blogpassword']
 
     return ctx
@@ -118,9 +116,8 @@ def sudo_upload_template(template, dest, context=None, mode=None, user='root', *
         context.update(kwargs)
     upload_template(template, dest, context, use_jinja=True,
         template_dir=str(TEMPLATE_DIR), use_sudo=True, backup=False,
-        mode=int(mode, 8) if isinstance(mode, string_types) else mode,
+        mode=int(mode, 8) if not isinstance(mode, (type(None), int)) else mode,
         chown=True, user=user)
-
 
 
 @task_app_from_environment
@@ -177,7 +174,7 @@ def deploy(app, with_blog=None, with_alembic=False, with_files=True):
                 pg_unaccent=app.pg_unaccent, pg_collkey=app.pg_collkey,
                 lsb_release=lsb_release, drop=True)
         sudo('gunzip -f %s' % archive)
-        dump, _ = os.path.splitext(archive) 
+        dump, _ = os.path.splitext(archive)
         sudo('psql -f %s -d %s' % (dump, app.name), user=app.name)
     elif exists(app.src / 'alembic.ini') and confirm('Upgrade database?', default=False):
         # Note: stopping the app is not strictly necessary, because the alembic
@@ -234,15 +231,16 @@ def require_postgres(database_name, user_name, user_password, pg_unaccent, pg_co
         require.postgres.database(database_name, owner=user_name)
 
     if pg_unaccent:
-        sql = 'CREATE EXTENSION IF NOT EXISTS unaccent WITH SCHEMA public;' 
-        sudo('psql -c "%s" -d %s' % (sql, app.name), user='postgres')
+        sql = 'CREATE EXTENSION IF NOT EXISTS unaccent WITH SCHEMA public;'
+        sudo('psql -c "%s" -d %s' % (sql, database_name), user='postgres')
 
     if pg_collkey:
         pg_version = '9.1' if lsb_release == 'precise' else '9.3'  # FIXME: xenial
         if not exists('/usr/lib/postgresql/%s/lib/collkey_icu.so' % pg_version):
             require.deb.packages(['postgresql-server-dev-%s' % pg_version, 'libicu-dev'])
             with cd('/tmp'):
-                sudo_upload_template('pg_collkey_Makefile', dest='Makefile', context={'pg_version': pg_version})
+                context = {'pg_version': pg_version}
+                sudo_upload_template('pg_collkey_Makefile', dest='Makefile', context=context)
                 require.file('collkey_icu.c', source=str(PG_COLLKEY_DIR / 'collkey_icu.c'))
                 run('make')
                 sudo('make install')
@@ -285,7 +283,7 @@ def require_nginx(app, ctx, default_site, site, location, logrotate, clld_dir, d
 
     maintenance.inner_func(app, hours=deploy_duration, ctx=ctx)
     service.reload('nginx')
-    
+
 
 def http_auth(username, htpasswd_file):
     userpass = getpass(prompt='HTTP Basic Auth password for user %s: ' % username)
