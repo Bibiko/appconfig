@@ -131,8 +131,8 @@ def deploy(app, with_blog=None, with_alembic=False, with_files=True):
             raise ValueError('unsupported platform: %r' % lsb_release)
 
     jre_deb = 'default-jre' if lsb_release == 'xenial' else 'openjdk-6-jre'
-    python_deb = 'python-dev' if lsb_release == 'precise' else 'python3-dev'
-    require.deb.packages(app.require_deb + [jre_deb, python_deb])
+    python_deb = ['python-dev'] if lsb_release == 'precise' else ['python-dev', 'python3-dev']
+    require.deb.packages(app.require_deb + [jre_deb] + python_deb)
 
     require.users.user(app.name, shell='/bin/bash')
 
@@ -192,7 +192,7 @@ def deploy(app, with_blog=None, with_alembic=False, with_files=True):
     supervisor(app, 'run', context=ctx)
 
     time.sleep(5)
-    res = run('wget -q -O - http://localhost:%s/_ping' % app.port)
+    res = run('curl http://localhost:%s/_ping' % app.port)
     assert json.loads(res)['status'] == 'ok'
 
 
