@@ -16,7 +16,7 @@ def load_sqldump(app, url=DUMP_URL, md5=DUMP_MD5):
         _, _, filename = url.rpartition('/')
         with cd('/tmp'):
             require.file(filename, url=url, md5=md5)
-            sudo('gunzip -c %s | psql %s' %(filename, app.name), user=app.name)
+            sudo('gunzip -c %s | psql %s' % (filename, app.name), user=app.name)
 
 
 @task_app_from_environment

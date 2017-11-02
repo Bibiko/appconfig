@@ -420,7 +420,8 @@ def copy_downloads(app, pattern='*'):
     app_dir = pathlib.Path(import_module(app.name).__file__).parent  # FIXME
     local_dl_dir = app_dir / 'static' / 'download'
     for f in local_dl_dir.glob(pattern):
-        require.file(str(app.download / f.name), source=f, use_sudo=True, owner='root', group='root')
+        target = app.download / f.name
+        require.file(str(target), source=f, use_sudo=True, owner='root', group='root')
         sudo('chown %s:%s %s' % (app.name, app.name, target))
     require.directory(str(app.download), use_sudo=True, mode='755')
 
