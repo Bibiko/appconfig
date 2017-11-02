@@ -30,14 +30,14 @@ from fabric.contrib.files import exists
 from fabric.contrib.console import confirm
 from fabtools import require, files, python, postgres, service
 
-from . import PKG_DIR, APPS, helpers, varnish
+from . import PKG_DIR, REPOS_DIR, APPS, helpers, varnish
 
 __all__ = [
     'init', 'task_app_from_environment',
     'deploy', 'start', 'stop', 'maintenance', 'uninstall',
     'cache', 'uncache',
     'run_script', 'create_downloads', 'copy_downloads', 'copy_rdfdump',
-    'pipfreeze',
+    'pip_freeze',
 ]
 
 PLATFORM = platform.system().lower()
@@ -404,6 +404,7 @@ def create_downloads(app):
 
     # run the script to create the exports from the database as glottolog3 user
     run_script(app, 'create_downloads')
+
     require.directory(str(app.download), use_sudo=True, mode='755')
 
 
@@ -412,13 +413,12 @@ def copy_downloads(app, pattern='*'):
     """copy downloads for the app"""
     require.directory(str(app.download), use_sudo=True, mode='777')
 
-    app = importlib.import_module(app.name)  # FIXME
-    app_dir = pathlib.Path(app.__file__).parent
-    local_dl_dir = app_dir / 'static' / 'download'
+    local_app = importlib.import_module(app.name)  # FIXME
+    local_dl_dir = pathlib.Path(local_app.__file__).parent / 'static' / 'download'
     for f in local_dl_dir.glob(pattern):
-        target = app.download / f.name
-        require.file(str(target), source=f, use_sudo=True)
-        sudo('chown %s:%s %s' % (app.name, app.name, target))
+        require.file(str(app.download / f.name), source=f, use_sudo=True,
+                     owner=app.name, group=app.name)
+
     require.directory(str(app.download), use_sudo=True, mode='755')
 
 
@@ -429,8 +429,8 @@ def copy_rdfdump(app):
 
 
 @task_app_from_environment
-def pipfreeze(app):
-    """get installed versions"""
+def pip_freeze(app):
+    """write installed versions to <app_name>/requirements.txt"""
     with python.virtualenv(str(app.venv)):
         stdout = run('pip freeze', combine_stderr=False)
 
@@ -449,5 +449,6 @@ def pipfreeze(app):
                 line = 'clldmpg'
             yield line + '\n'
 
-    with open('requirements.txt', 'w') as fp:
+    target = REPOS_DIR / app.name / 'requirements.txt'
+    with target.open('w', encoding='ascii') as fp:
         fp.writelines(iterlines(stdout.splitlines()))
