@@ -17,7 +17,10 @@ TEST_DIR = pathlib.Path(__file__).parent
 
 @pytest.fixture(scope='session')
 def config(filename=TEST_DIR / 'apps.ini'):
-    return Config.from_file(filename)
+    with pytest.warns(UserWarning) as w:
+        result = Config.from_file(filename)
+    assert ['%s' % _.message for _ in w] == ['missing fabfile dir: testapp']
+    return result
 
 
 @pytest.fixture(scope='session')

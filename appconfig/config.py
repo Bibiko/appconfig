@@ -15,9 +15,12 @@ from __future__ import unicode_literals
 import io
 import copy
 import argparse
+import warnings
 import configparser
 
-from ._compat import pathlib, iteritems
+from ._compat import pathlib, iteritems, itervalues
+
+from . import tools
 
 __all__ = ['Config']
 
@@ -25,14 +28,29 @@ __all__ = ['Config']
 class Config(dict):
 
     @classmethod
-    def from_file(cls, filename, value_cls=None):
+    def from_file(cls, filename, value_cls=None, validate=True):
         if value_cls is None:
             value_cls = App
         parser = ConfigParser.from_file(filename)
         items = {s: value_cls(**parser[s]) for s in parser.sections()
                 if not s.startswith('_')}
-        assert all(s == v.name for s, v in iteritems(items))
-        return cls(items)
+        inst = cls(items)
+        if validate:
+            inst.validate()
+        return inst
+
+    def validate(self):
+        mismatch = [(name, app.name) for name, app in iteritems(self)
+                    if name != app.name]
+        if mismatch:
+            raise ValueError('section/name mismatch: %r' % mismatch)
+        ports = [app.port for app in itervalues(self)]
+        duplicates = tools.duplicates(ports)
+        if duplicates:
+            raise ValueError('duplicate port(s): %r' % duplicates)
+        for app in itervalues(self):
+            if not app.fabfile_dir.exists():
+                warnings.warn('missing fabfile dir: %s' % app.name)
 
 
 class ConfigParser(configparser.ConfigParser):
@@ -117,3 +135,8 @@ class App(argparse.Namespace):
         inst = object.__new__(self.__class__)
         inst.__dict__ = new
         return inst
+
+    @property
+    def fabfile_dir(self):
+        from . import REPOS_DIR
+        return REPOS_DIR / self.name

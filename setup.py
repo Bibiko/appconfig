@@ -15,10 +15,9 @@ setup(
     include_package_data=True,
     zip_safe=False,
     install_requires=[
+        'configparser; python_version < "3"',
         'Fabric3>=1.11',
         'fabtools-python>=0.19.7',
-        'clldutils',
-        'configparser; python_version < "3"',
         'Jinja2',
         'pathlib2; python_version < "3"',
         'pytz',
@@ -31,8 +30,7 @@ setup(
         'Programming Language :: Python :: 2.7',
         'Programming Language :: Python :: 3',
         'Programming Language :: Python :: 3.4',
+        'Programming Language :: Python :: 3.5',
+        'Programming Language :: Python :: 3.6',
     ],
-    entry_points={
-        'console_scripts': ['appconfig=appconfig.__main__:main'],
-    },
 )
