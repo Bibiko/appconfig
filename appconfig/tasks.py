@@ -72,8 +72,7 @@ def task_app_from_environment(func_or_environment):
         def wrapper(environment, *args, **kwargs):
             assert environment in ('production', 'test')
             if not env.hosts:
-                # This allows overriding the configured hosts by explicitly passing a host for
-                # the task using fab's -H option.
+                # allow overriding the hosts by using fab's -H option
                 env.hosts = [getattr(APP, environment)]
             env.environment = environment
             return execute(func, APP, *args, **kwargs)
@@ -116,8 +115,7 @@ def sudo_upload_template(template, dest, context=None, mode=None, user='root', *
         context.update(kwargs)
     upload_template(template, dest, context, use_jinja=True,
         template_dir=str(TEMPLATE_DIR), use_sudo=True, backup=False,
-        mode=int(mode, 8) if not isinstance(mode, (type(None), int)) else mode,
-        chown=True, user=user)
+        mode=mode, chown=True, user=user)
 
 
 @task_app_from_environment
@@ -129,8 +127,7 @@ def deploy(app, with_blog=None, with_alembic=False, with_files=True):
             lsb_release = codename
             break
     else:
-        if lsb_release != '{"status": "ok"}':
-            # if this were the case, we'd be in a test!
+        if lsb_release != '{"status": "ok"}':  # not in a test
             raise ValueError('unsupported platform: %r' % lsb_release)
 
     jre_deb = 'default-jre' if lsb_release == 'xenial' else 'openjdk-6-jre'
@@ -235,7 +232,8 @@ def require_postgres(database_name, user_name, user_password, pg_unaccent, pg_co
         sudo('psql -c "%s" -d %s' % (sql, database_name), user='postgres')
 
     if pg_collkey:
-        pg_version = '9.1' if lsb_release == 'precise' else '9.3'  # FIXME: xenial
+        pg_dir, = run('find /usr/lib/postgresql/ -mindepth 1 -maxdepth 1 -type d').splitlines()
+        pg_version = os.path.basename(pg_dir)
         if not exists('/usr/lib/postgresql/%s/lib/collkey_icu.so' % pg_version):
             require.deb.packages(['postgresql-server-dev-%s' % pg_version, 'libicu-dev'])
             with cd('/tmp'):
@@ -388,33 +386,30 @@ def run_script(app, script_name, *args):  # pragma: no cover
 @task_app_from_environment
 def create_downloads(app):
     """create all configured downloads"""
-    dl_dir = str(app.src / app.name / 'static' / 'download')
-    require.directory(dl_dir, use_sudo=True, mode='777')
+    require.directory(str(app.download), use_sudo=True, mode='777')
 
     # run the script to create the exports from the database as glottolog3 user
     run_script(app, 'create_downloads')
-    require.directory(dl_dir, use_sudo=True, mode='755')
+    require.directory(str(app.download), use_sudo=True, mode='755')
 
 
 @task_app_from_environment
 def copy_downloads(app, pattern='*'):
     """copy downloads for the app"""
-    dl_dir = str(app.src / app.name / 'static' / 'download')
-    require.directory(dl_dir, use_sudo=True, mode='777')
+    require.directory(str(app.download), use_sudo=True, mode='777')
 
     app_dir = pathlib.Path(import_module(app.name).__file__).parent  # FIXME
     local_dl_dir = app_dir / 'static' / 'download'
     for f in local_dl_dir.glob(pattern):
-        target = str(dl_dir / f.name)
-        require.file(target, f.read_bytes(), use_sudo=True, owner='root', group='root')  # FIXME
+        require.file(str(app.download / f.name), source=f, use_sudo=True, owner='root', group='root')
         sudo('chown %s:%s %s' % (app.name, app.name, target))
-    require.directory(dl_dir, use_sudo=True, mode='755')
+    require.directory(str(app.download), use_sudo=True, mode='755')
 
 
 @task_app_from_environment
 def copy_rdfdump(app):
     """copy rdfdump for the app"""
-    execute(copy_downloads(app, pattern='*.n3.gz'))
+    execute(copy_downloads, app, pattern='*.n3.gz')
 
 
 @task_app_from_environment

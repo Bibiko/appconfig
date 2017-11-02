@@ -104,7 +104,7 @@ class App(argparse.Namespace):
 
     _fields.update(dict.fromkeys([
         'home', 'config', 'www',
-        'venv', 'venv_bin', 'gunicorn', 'src',
+        'venv', 'venv_bin', 'gunicorn', 'src', 'download',
         'logs', 'error_log', 'logrotate',
         'supervisor',
         'nginx_default_site', 'nginx_site', 'nginx_location', 'nginx_htpasswd',
