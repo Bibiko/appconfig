@@ -20,7 +20,7 @@ import configparser
 
 from ._compat import pathlib, iteritems, itervalues
 
-from . import tools
+from . import helpers
 
 __all__ = ['Config']
 
@@ -45,7 +45,7 @@ class Config(dict):
         if mismatch:
             raise ValueError('section/name mismatch: %r' % mismatch)
         ports = [app.port for app in itervalues(self)]
-        duplicates = tools.duplicates(ports)
+        duplicates = helpers.duplicates(ports)
         if duplicates:
             raise ValueError('duplicate port(s): %r' % duplicates)
         for app in itervalues(self):

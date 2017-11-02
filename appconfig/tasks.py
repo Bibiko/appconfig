@@ -30,7 +30,7 @@ from fabric.contrib.files import exists
 from fabric.contrib.console import confirm
 from fabtools import require, files, python, postgres, service
 
-from . import PKG_DIR, APPS, varnish, tools
+from . import PKG_DIR, APPS, helpers, varnish
 
 __all__ = [
     'init', 'task_app_from_environment',
@@ -57,7 +57,7 @@ env.use_ssh_config = True  # configure your username in .ssh/config
 def init(app_name=None):
     global APP
     if app_name is None:
-        app_name = tools.caller_dirname()
+        app_name = helpers.caller_dirname()
     APP = APPS[app_name]
 
 
@@ -109,13 +109,13 @@ def template_context(app, workers=3, with_blog=False,):
     return ctx
 
 
-def sudo_upload_template(template, dest, context=None, mode=None, user='root', **kwargs):
+def sudo_upload_template(template, dest, context=None, mode=None, **kwargs):
     if kwargs:
         context = context.copy()
         context.update(kwargs)
     files.upload_template(template, dest, context, use_jinja=True,
         template_dir=str(TEMPLATE_DIR), use_sudo=True, backup=False,
-        mode=mode, chown=True, user=user)
+        mode=mode, chown=True)
 
 
 @task_app_from_environment
@@ -183,6 +183,7 @@ def require_bibutils(directory):  # pragma: no cover
     make
     sudo make install
     """
+    # FIXME: update?, download/include in repo?
     if not exists('/usr/local/bin/bib2xml'):
         source = BIBUTILS_DIR / 'bibutils_5.0_src.tgz'
         target = '/tmp/%s' % source.name
@@ -244,7 +245,7 @@ def require_venv(directory, venv_python, require_packages, assets_name):
 def require_nginx(app, ctx, default_site, site, location, logrotate, clld_dir, deploy_duration):
     with shell_env(SYSTEMD_PAGER=''):
         require.nginx.server()
-    require.directory(str(location.parent), owner='root', group='root', use_sudo=True)
+    require.directory(str(location.parent), use_sudo=True)
 
     auth, admin_auth = http_auth(username=app.name, htpasswd_file=app.nginx_htpasswd)
 
@@ -300,7 +301,7 @@ def upload_local_sqldump(app, ctx, lsb_release):
             lsb_release=lsb_release, drop=True)
 
     sudo('gunzip -c %s | psql -d %s' % (target, app.name), user=app.name)
-    run('rm %s' % target)
+    files.remove(str(target))
 
 
 def alembic_upgrade_head(app, ctx):
@@ -359,7 +360,7 @@ def maintenance(app, hours=2, ctx=None):
         ctx = template_context(app)
     require.directory(str(app.www), use_sudo=True)
     sudo_upload_template('503.html', dest=str(app.www / '503.html'), context=ctx,
-                         timestamp=tools.strfnow(add_hours=hours))
+                         timestamp=helpers.strfnow(add_hours=hours))
 
 
 @task_app_from_environment
@@ -367,7 +368,7 @@ def uninstall(app):  # pragma: no cover
     """uninstall the app"""
     for path in [app.supervisor, app.nginx_location, app.nginx_site]:
         if exists(path):
-            sudo('rm %s' % path)
+            files.remove(str(path), use_sudo=True)
 
     service.reload('nginx')
     sudo('supervisorctl stop %s' % app.name)
@@ -416,7 +417,7 @@ def copy_downloads(app, pattern='*'):
     local_dl_dir = app_dir / 'static' / 'download'
     for f in local_dl_dir.glob(pattern):
         target = app.download / f.name
-        require.file(str(target), source=f, use_sudo=True, owner='root', group='root')
+        require.file(str(target), source=f, use_sudo=True)
         sudo('chown %s:%s %s' % (app.name, app.name, target))
     require.directory(str(app.download), use_sudo=True, mode='755')
 

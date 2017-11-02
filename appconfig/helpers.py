@@ -1,4 +1,4 @@
-# tools.py - one-trick ponies
+# helpers.py - one-trick ponies
 
 import os
 import sys
