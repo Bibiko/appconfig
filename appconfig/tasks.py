@@ -14,25 +14,21 @@ and run the init function, passing an app name defined in the global clld app co
 from __future__ import unicode_literals
 
 import os
-import time
 import json
+import time
+import getpass
 import platform
 import tempfile
+import importlib
 import functools
-from getpass import getpass
-from datetime import datetime, timedelta
-from importlib import import_module
 
 from ._compat import pathlib, iteritems
 
 from fabric.api import (
     env, task, execute, settings, shell_env, prompt, sudo, run, cd, local)
-from fabric.contrib.console import confirm
 from fabric.contrib.files import exists
-from fabtools import require, service, postgres
-from fabtools.files import upload_template
-from fabtools.python import virtualenv
-from pytz import timezone, utc
+from fabric.contrib.console import confirm
+from fabtools import require, files, python, postgres, service
 
 from . import PKG_DIR, APPS, varnish, tools
 
@@ -117,7 +113,7 @@ def sudo_upload_template(template, dest, context=None, mode=None, user='root', *
     if kwargs:
         context = context.copy()
         context.update(kwargs)
-    upload_template(template, dest, context, use_jinja=True,
+    files.upload_template(template, dest, context, use_jinja=True,
         template_dir=str(TEMPLATE_DIR), use_sudo=True, backup=False,
         mode=mode, chown=True, user=user)
 
@@ -236,7 +232,7 @@ def require_venv(directory, venv_python, require_packages, assets_name):
     with settings(sudo_prefix=env.sudo_prefix + ' -H'):  # set HOME for pip log/cache
         require.python.virtualenv(str(directory), venv_python=venv_python, use_sudo=True)
 
-        with virtualenv(str(directory)):
+        with python.virtualenv(str(directory)):
             require.python.packages(require_packages, use_sudo=True)
             sudo('webassets -m %s.assets build' % assets_name)
             res = sudo('python -c "import clld; print(clld.__file__)"')
@@ -267,10 +263,10 @@ def require_nginx(app, ctx, default_site, site, location, logrotate, clld_dir, d
 
 
 def http_auth(username, htpasswd_file):
-    userpass = getpass(prompt='HTTP Basic Auth password for user %s: ' % username)
+    userpass = getpass.getpass(prompt='HTTP Basic Auth password for user %s: ' % username)
     pwds = {username: userpass, 'admin': ''}
     while not pwds['admin']:
-        pwds['admin'] = getpass(prompt='HTTP Basic Auth password for user admin: ')
+        pwds['admin'] = getpass.getpass(prompt='HTTP Basic Auth password for user admin: ')
 
     pairs = [(u, p) for u, p in iteritems(pwds) if p]
     for opts, pairs in [('-bdc', pairs[:1]), ('-bd', pairs[1:])]:
@@ -312,7 +308,7 @@ def alembic_upgrade_head(app, ctx):
     # revisions run in separate transactions!
     supervisor(app, 'pause', context=ctx)
 
-    with virtualenv(str(app.venv)), cd(str(app.src)):
+    with python.virtualenv(str(app.venv)), cd(str(app.src)):
         sudo('%s -n production upgrade head' % (app.venv_bin / 'alembic'), user=app.name)
 
     if confirm('Vacuum database?', default=False):
@@ -361,11 +357,9 @@ def maintenance(app, hours=2, ctx=None):
     """
     if ctx is None:
         ctx = template_context(app)
-
-    ts = utc.localize(datetime.utcnow() + timedelta(hours=hours))
-    ts = ts.astimezone(timezone('Europe/Berlin')).strftime('%Y-%m-%d %H:%M %Z%z')
     require.directory(str(app.www), use_sudo=True)
-    sudo_upload_template('503.html', dest=str(app.www / '503.html'), context=ctx, timestamp=ts)
+    sudo_upload_template('503.html', dest=str(app.www / '503.html'), context=ctx,
+                         timestamp=tools.strfnow(add_hours=hours))
 
 
 @task_app_from_environment
@@ -417,7 +411,8 @@ def copy_downloads(app, pattern='*'):
     """copy downloads for the app"""
     require.directory(str(app.download), use_sudo=True, mode='777')
 
-    app_dir = pathlib.Path(import_module(app.name).__file__).parent  # FIXME
+    app = importlib.import_module(app.name)  # FIXME
+    app_dir = pathlib.Path(app.__file__).parent
     local_dl_dir = app_dir / 'static' / 'download'
     for f in local_dl_dir.glob(pattern):
         target = app.download / f.name
@@ -435,7 +430,7 @@ def copy_rdfdump(app):
 @task_app_from_environment
 def pipfreeze(app):
     """get installed versions"""
-    with virtualenv(str(app.venv)):
+    with python.virtualenv(str(app.venv)):
         stdout = run('pip freeze', combine_stderr=False)
 
     def iterlines(lines):

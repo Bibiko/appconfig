@@ -2,8 +2,11 @@
 
 import os
 import sys
+import datetime
 
-__all__ = ['caller_dirname']
+import pytz
+
+__all__ = ['caller_dirname', 'duplicates', 'strfnow']
 
 
 def caller_dirname(steps=1):
@@ -25,3 +28,15 @@ def duplicates(iterable):
     """
     seen = set()
     return [i for i in iterable if i in seen or seen.add(i)]
+
+
+def strfnow(add_hours=0, timezone='Europe/Berlin', format_='%Y-%m-%d %H:%M %Z%z'):
+    """
+
+    >>> assert strfnow() < strfnow(add_hours=2)
+    """
+    dt = datetime.datetime.utcnow()
+    if add_hours:
+        dt += datetime.timedelta(hours=add_hours)
+    local_dt = pytz.utc.localize(dt).astimezone(pytz.timezone(timezone))
+    return local_dt.strftime(format_)

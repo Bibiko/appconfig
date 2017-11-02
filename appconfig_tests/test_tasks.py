@@ -13,22 +13,21 @@ pytestmark = pytest.mark.usefixtures('APP')
 def test_deploy(mocker):
     mocker.patch.multiple('appconfig.tasks',
         time=mocker.Mock(),
-        getpass=mocker.Mock(return_value='password'),
-        confirm=mocker.Mock(return_value=True),
-        exists=mocker.Mock(return_value=True),
-        virtualenv=mocker.DEFAULT,
+        getpass=mocker.Mock(**{'getpass.return_value': 'password'}),
+        pathlib=mocker.DEFAULT,
+        env=mocker.DEFAULT,
+        prompt=mocker.Mock(return_value='app'),
         sudo=mocker.Mock(return_value='/usr/venvs/__init__.py'),
         run=mocker.Mock(return_value='{"status": "ok"}'),
-        local=mocker.Mock(),
-        env=mocker.DEFAULT,
-        service=mocker.Mock(),
         cd=mocker.DEFAULT,
+        local=mocker.Mock(),
+        exists=mocker.Mock(return_value=True),
+        confirm=mocker.Mock(return_value=True),
         require=mocker.Mock(),
+        files=mocker.Mock(),
+        python=mocker.DEFAULT,
         postgres=mocker.Mock(),
-        prompt=mocker.Mock(return_value='app'),
-        pathlib=mocker.DEFAULT,
-        import_module=mocker.Mock(return_value=None),
-        upload_template=mocker.Mock())
+        service=mocker.Mock())
 
     tasks.deploy('test')
     tasks.deploy('test', with_alembic=True)
