@@ -28,7 +28,7 @@ from fabric.api import (
     env, task, execute, settings, shell_env, prompt, sudo, run, cd, local)
 from fabric.contrib.files import exists
 from fabric.contrib.console import confirm
-from fabtools import require, files, python, postgres, service
+from fabtools import require, files, python, postgres, service, system
 
 from . import PKG_DIR, REPOS_DIR, APPS, helpers, varnish
 
@@ -121,17 +121,13 @@ def sudo_upload_template(template, dest, context=None, mode=None, **kwargs):
 @task_app_from_environment
 def deploy(app, with_blog=None, with_alembic=False):
     """deploy the app"""
-    lsb_release = run('lsb_release --all', warn_only=True)
-    for codename in ['precise', 'trusty', 'xenial']:
-        if codename in lsb_release:
-            lsb_release = codename
-            break
-    else:
-        if lsb_release != '{"status": "ok"}':  # not in a test
-            raise ValueError('unsupported platform: %r' % lsb_release)
+    assert system.distrib_id() == 'Ubuntu'
+    lsb_codename = system.distrib_codename()
+    if lsb_codename not in ('precise', 'trusty', 'xenial'):
+        raise ValueError('unsupported platform: %s' % lsb_codename)
 
-    jre_deb = 'default-jre' if lsb_release == 'xenial' else 'openjdk-6-jre'
-    python_deb = ['python-dev'] if lsb_release == 'precise' else ['python-dev', 'python3-dev']
+    jre_deb = 'default-jre' if lsb_codename == 'xenial' else 'openjdk-6-jre'
+    python_deb = ['python-dev'] if lsb_codename == 'precise' else ['python-dev', 'python3-dev']
     require.deb.packages(app.require_deb + [jre_deb] + python_deb)
 
     require.users.user(app.name, shell='/bin/bash')
@@ -143,14 +139,14 @@ def deploy(app, with_blog=None, with_alembic=False):
     require_postgres(app.name,
         user_name=app.name, user_password=app.name,
         pg_unaccent=app.pg_unaccent, pg_collkey=app.pg_collkey,
-        lsb_release=lsb_release)
+        lsb_codename=lsb_codename)
 
     ctx = template_context(app,
         workers=3 if app.workers > 3 and env.environment == 'test' else app.workers,
         with_blog=with_blog if with_blog is not None else app.with_blog)
 
     clld_dir = require_venv(app.venv,
-        venv_python='python2' if lsb_release == 'precise' else 'python3',
+        venv_python='python2' if lsb_codename == 'precise' else 'python3',
         require_packages=[app.app_pkg] + app.require_pip,
         assets_name=app.name)
 
@@ -159,7 +155,7 @@ def deploy(app, with_blog=None, with_alembic=False):
         logrotate=app.logrotate, clld_dir=clld_dir, deploy_duration=app.deploy_duration)
 
     if not with_alembic and confirm('Recreate database?', default=False):
-        upload_local_sqldump(app, ctx, lsb_release)
+        upload_local_sqldump(app, ctx, lsb_codename)
     elif exists(app.src / 'alembic.ini') and confirm('Upgrade database?', default=False):
         alembic_upgrade_head(app, ctx)
 
@@ -197,7 +193,7 @@ def require_bibutils(directory):  # pragma: no cover
 
 
 def require_postgres(database_name, user_name, user_password, pg_unaccent, pg_collkey,
-                     lsb_release, drop=False):
+                     lsb_codename, drop=False):
     if drop:
         with cd('/var/lib/postgresql'):
             sudo('dropdb %s' % database_name, user='postgres')
@@ -281,7 +277,7 @@ def http_auth(username, htpasswd_file):
     return auth if userpass else '', auth
 
 
-def upload_local_sqldump(app, ctx, lsb_release):
+def upload_local_sqldump(app, ctx, lsb_codename):
     db_name = prompt('Replace with dump of local database:', default=app.name)
     sqldump = pathlib.Path(tempfile.mktemp(suffix='.sql.gz', prefix='%s-' % db_name))
     target = pathlib.PurePosixPath('/tmp') / sqldump.name
@@ -298,7 +294,7 @@ def upload_local_sqldump(app, ctx, lsb_release):
         require_postgres(app.name,
             user_name=app.name, user_password=app.name,
             pg_unaccent=app.pg_unaccent, pg_collkey=app.pg_collkey,
-            lsb_release=lsb_release, drop=True)
+            lsb_codename=lsb_codename, drop=True)
 
     sudo('gunzip -c %s | psql -d %s' % (target, app.name), user=app.name)
     files.remove(str(target))

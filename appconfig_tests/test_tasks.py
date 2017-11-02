@@ -27,7 +27,10 @@ def test_deploy(mocker):
         files=mocker.Mock(),
         python=mocker.DEFAULT,
         postgres=mocker.Mock(),
-        service=mocker.Mock())
+        service=mocker.Mock(),
+        system=mocker.Mock(**{'distrib_id.return_value': 'Ubuntu',
+                              'distrib_codename.return_value': 'xenial'}),
+    )
 
     tasks.deploy('test')
     tasks.deploy('test', with_alembic=True)
