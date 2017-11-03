@@ -28,6 +28,7 @@ def test_deploy(mocker):
         python=mocker.DEFAULT,
         postgres=mocker.Mock(),
         service=mocker.Mock(),
+        supervisor=mocker.Mock(),
         system=mocker.Mock(**{'distrib_id.return_value': 'Ubuntu',
                               'distrib_codename.return_value': 'xenial'}),
     )
@@ -35,16 +36,18 @@ def test_deploy(mocker):
     tasks.deploy('test')
     tasks.deploy('test', with_alembic=True)
     tasks.deploy('production')
+    tasks.deploy('production', with_alembic=True)
 
 
 @pytest.mark.usefixtures('execute')
 def test_tasks():
     tasks.deploy('test')
-    tasks.stop('test')
     tasks.start('test')
-    tasks.maintenance('test')
+    tasks.stop('test')
+    tasks.uninstall('test')
     tasks.cache()
     tasks.uncache()
     tasks.run_script('test', 'script')
     tasks.create_downloads('test')
-    tasks.uninstall('test')
+    tasks.copy_rdfdump('test')
+    tasks.pip_freeze()

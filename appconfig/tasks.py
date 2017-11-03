@@ -28,13 +28,13 @@ from fabric.api import (
     env, task, execute, settings, shell_env, prompt, sudo, run, cd, local)
 from fabric.contrib.files import exists
 from fabric.contrib.console import confirm
-from fabtools import require, files, python, postgres, service, system
+from fabtools import require, files, python, postgres, service, supervisor, system
 
 from . import PKG_DIR, REPOS_DIR, APPS, helpers, varnish
 
 __all__ = [
     'init', 'task_app_from_environment',
-    'deploy', 'start', 'stop', 'maintenance', 'uninstall',
+    'deploy', 'start', 'stop', 'uninstall',
     'cache', 'uncache',
     'run_script', 'create_downloads', 'copy_downloads', 'copy_rdfdump',
     'pip_freeze',
@@ -76,24 +76,24 @@ def task_app_from_environment(func_or_environment):
                 env.hosts = [getattr(APP, environment)]
             env.environment = environment
             return execute(func, APP, *args, **kwargs)
-        wrapper.inner_func = func
+        wrapper.execute_inner = func
         return task(wrapper)
     else:
         def decorator(_func):
             _wrapper = task_app_from_environment(_func).wrapped
             wrapper = functools.wraps(_wrapper)(functools.partial(_wrapper, _environment))
-            wrapper.inner_func = _wrapper.inner_func
+            wrapper.execute_inner = _wrapper.execute_inner
             return task(wrapper)
         return decorator
 
 
 def template_context(app, workers=3, with_blog=False,):
     ctx = {
+        'SITE': {'test': False, 'production': True}[env.environment],
+        'TEST': {'production': False, 'test': True}[env.environment],
         'app': app, 'env': env, 'workers': workers,
         'auth': '',
         'bloghost': '', 'bloguser': '', 'blogpassword': '',
-        'TEST': {'production': False, 'test': True}[env.environment],
-        'SITE': {'test': False, 'production': True}[env.environment],
     }
 
     if with_blog:  # pragma: no cover
@@ -111,8 +111,11 @@ def template_context(app, workers=3, with_blog=False,):
 
 def sudo_upload_template(template, dest, context=None, mode=None, **kwargs):
     if kwargs:
-        context = context.copy()
-        context.update(kwargs)
+        if context is None:
+            context = kwargs
+        else:
+            context = context.copy()
+            context.update(kwargs)
     files.upload_template(template, dest, context, use_jinja=True,
         template_dir=str(TEMPLATE_DIR), use_sudo=True, backup=False,
         mode=mode, chown=True)
@@ -127,14 +130,11 @@ def deploy(app, with_blog=None, with_alembic=False):
         raise ValueError('unsupported platform: %s' % lsb_codename)
 
     jre_deb = 'default-jre' if lsb_codename == 'xenial' else 'openjdk-6-jre'
-    python_deb = ['python-dev'] if lsb_codename == 'precise' else ['python-dev', 'python3-dev']
-    require.deb.packages(app.require_deb + [jre_deb] + python_deb)
+    require.deb.packages(app.require_deb + [jre_deb])
 
     require.users.user(app.name, shell='/bin/bash')
 
-    require.directory(str(app.logs), use_sudo=True)
-
-    require_bibutils(app.home)
+    require_bibutils(app.home_dir)
 
     require_postgres(app.name,
         user_name=app.name, user_password=app.name,
@@ -145,26 +145,29 @@ def deploy(app, with_blog=None, with_alembic=False):
         workers=3 if app.workers > 3 and env.environment == 'test' else app.workers,
         with_blog=with_blog if with_blog is not None else app.with_blog)
 
-    clld_dir = require_venv(app.venv,
+    require_config(app.config, app, ctx)
+
+    clld_dir = require_venv(app.venv_dir,
         venv_python='python2' if lsb_codename == 'precise' else 'python3',
         require_packages=[app.app_pkg] + app.require_pip,
         assets_name=app.name)
 
-    require_nginx(app, ctx,
+    require_logging(app.log_dir,
+        logrotate=app.logrotate, access_log=app.access_log, error_log=app.error_log)
+
+    require_nginx(ctx,
         default_site=app.nginx_default_site, site=app.nginx_site, location=app.nginx_location,
-        logrotate=app.logrotate, clld_dir=clld_dir, deploy_duration=app.deploy_duration)
+        logrotate=app.logrotate, clld_dir=clld_dir,
+        htpasswd_file=app.nginx_htpasswd, htpasswd_user=app.name)
+
+    stop.execute_inner(app, maintenance_hours=app.deploy_duration)
 
     if not with_alembic and confirm('Recreate database?', default=False):
         upload_local_sqldump(app, ctx, lsb_codename)
-    elif exists(app.src / 'alembic.ini') and confirm('Upgrade database?', default=False):
+    elif exists(app.src_dir / 'alembic.ini') and confirm('Upgrade database?', default=False):
         alembic_upgrade_head(app, ctx)
 
-    # We only set add a setting clld.files, if the corresponding directory exists;
-    # otherwise the app would throw an error on startup.
-    sudo_upload_template('config.ini', dest=str(app.config), context=ctx,
-                         files=app.www / 'files' if exists(app.www / 'files') else False)
-
-    supervisor(app, 'run', context=ctx)
+    start.execute_inner(app)
 
     time.sleep(5)
     res = run('curl http://localhost:%s/_ping' % app.port)
@@ -173,8 +176,8 @@ def deploy(app, with_blog=None, with_alembic=False):
 
 def require_bibutils(directory):  # pragma: no cover
     """
-    tar -xzvf bibutils_5.0_src.tgz -C {app.home}
-    cd {app.home}/bibutils_5.0
+    tar -xzf bibutils_5.0_src.tgz -C {app.home_dir}
+    cd {app.home_dir}/bibutils_5.0
     configure
     make
     sudo make install
@@ -185,7 +188,7 @@ def require_bibutils(directory):  # pragma: no cover
         target = '/tmp/%s' % source.name
         require.file(target, source=str(source), use_sudo=True, mode='')
 
-        sudo('tar -xzvf %s -C %s' % (target, directory))
+        sudo('tar -xzf %s -C %s' % (target, directory))
         with cd(str(directory / 'bibutils_5.0')):
             run('./configure')
             run('make')
@@ -213,14 +216,21 @@ def require_postgres(database_name, user_name, user_password, pg_unaccent, pg_co
         if not exists('/usr/lib/postgresql/%s/lib/collkey_icu.so' % pg_version):
             require.deb.packages(['postgresql-server-dev-%s' % pg_version, 'libicu-dev'])
             with cd('/tmp'):
-                context = {'pg_version': pg_version}
-                sudo_upload_template('pg_collkey_Makefile', dest='Makefile', context=context)
+                sudo_upload_template('pg_collkey_Makefile', dest='Makefile', pg_version=pg_version)
                 require.file('collkey_icu.c', source=str(PG_COLLKEY_DIR / 'collkey_icu.c'))
                 run('make')
                 sudo('make install')
         with cd('/tmp'):
             require.file('collkey_icu.sql', source=str(PG_COLLKEY_DIR / 'collkey_icu.sql'))
             sudo('psql -f collkey_icu.sql -d %s' % database_name, user='postgres')
+
+
+def require_config(filepath, app, ctx):
+    # We only set add a setting clld.files, if the corresponding directory exists;
+    # otherwise the app would throw an error on startup.
+    files_dir = app.www_dir / 'files'
+    files = files_dir if exists(files_dir) else None
+    sudo_upload_template('config.ini', dest=str(filepath), context=ctx, files=files)
 
 
 def require_venv(directory, venv_python, require_packages, assets_name):
@@ -238,33 +248,39 @@ def require_venv(directory, venv_python, require_packages, assets_name):
     return '/'.join(res.split('/')[:-1])
 
 
-def require_nginx(app, ctx, default_site, site, location, logrotate, clld_dir, deploy_duration):
+def require_logging(log_dir, logrotate, access_log, error_log):
+    require.directory(str(log_dir), use_sudo=True)
+
+    if env.environment == 'production':
+        sudo_upload_template('logrotate.conf', dest=str(logrotate),
+                             access_log=access_log, error_log=error_log)
+
+
+def require_nginx(ctx, default_site, site, location, logrotate, clld_dir,
+                  htpasswd_file, htpasswd_user):
     with shell_env(SYSTEMD_PAGER=''):
         require.nginx.server()
-    require.directory(str(location.parent), use_sudo=True)
 
-    auth, admin_auth = http_auth(username=app.name, htpasswd_file=app.nginx_htpasswd)
+    auth, admin_auth = http_auth(htpasswd_file, username=htpasswd_user)
 
     # TODO: consider require.nginx.site
     if ctx['SITE']:
         conf_dest = site
-        sudo_upload_template('logrotate.conf', dest=str(logrotate), context=ctx)
     else:  # test environment
-        conf_dest = location
         sudo_upload_template('nginx-default.conf', dest=str(default_site))
+        require.directory(str(location.parent), use_sudo=True)
+        conf_dest = location
     sudo_upload_template('nginx-app.conf', dest=str(conf_dest), context=ctx,
                          clld_dir=clld_dir, auth=auth, admin_auth=admin_auth)
 
-    maintenance.inner_func(app, hours=deploy_duration, ctx=ctx)
-    service.reload('nginx')
 
-
-def http_auth(username, htpasswd_file):
+def http_auth(htpasswd_file, username):
     userpass = getpass.getpass(prompt='HTTP Basic Auth password for user %s: ' % username)
     pwds = {username: userpass, 'admin': ''}
     while not pwds['admin']:
         pwds['admin'] = getpass.getpass(prompt='HTTP Basic Auth password for user admin: ')
 
+    require.directory(str(htpasswd_file.parent), use_sudo=True)
     pairs = [(u, p) for u, p in iteritems(pwds) if p]
     for opts, pairs in [('-bdc', pairs[:1]), ('-bd', pairs[1:])]:
         for u, p in pairs:
@@ -288,7 +304,7 @@ def upload_local_sqldump(app, ctx, lsb_codename):
     require.file(str(target), source=sqldump)
     sqldump.unlink()
 
-    supervisor(app, 'pause', context=ctx)
+    stop.execute_inner(app)
 
     if postgres.database_exists(app.name):
         require_postgres(app.name,
@@ -303,71 +319,57 @@ def upload_local_sqldump(app, ctx, lsb_codename):
 def alembic_upgrade_head(app, ctx):
     # Note: stopping the app is not strictly necessary, because the alembic
     # revisions run in separate transactions!
-    supervisor(app, 'pause', context=ctx)
+    stop.execute_inner(app)
 
-    with python.virtualenv(str(app.venv)), cd(str(app.src)):
-        sudo('%s -n production upgrade head' % (app.venv_bin / 'alembic'), user=app.name)
+    with python.virtualenv(str(app.venv_dir)), cd(str(app.src_dir)):
+        sudo('%s -n production upgrade head' % (app.alembic), user=app.name)
 
     if confirm('Vacuum database?', default=False):
         flag = '-f ' if confirm('VACUUM FULL?', default=False) else ''
         sudo('vacuumdb %s-z -d %s' % (flag, app.name), user='postgres')
 
 
+def require_supervisor(filepath, app, pause=False):
+    # TODO: consider require.supervisor.process
+    sudo_upload_template('supervisor.conf', dest=str(filepath), mode='644',
+                         name=app.name, gunicorn=app.gunicorn, user=app.name, group=app.name,
+                         error_log=app.error_log, config=app.config, PAUSE=pause)
+
+
 @task_app_from_environment
 def start(app):
     """start app by changing the supervisord config"""
-    execute(supervisor, app, 'run')
+    require_supervisor(app.supervisor, app)
+    supervisor.update_config()
+    service.reload('nginx')
 
 
 @task_app_from_environment
-def stop(app):
-    """stop app by changing the supervisord config"""
-    execute(supervisor, app, 'pause')
+def stop(app, maintenance_hours=2):
+    """pause app by changing the supervisord config
 
-
-def supervisor(app, command, context=None):
+    create a maintenance page giving a date when we expect the service will be back
+    :param maintenance_hours: Number of hours we expect the downtime to last.
     """
-    .. seealso: http://serverfault.com/a/479754
-    """
-    # TODO: consider fabtools.supervisor
-    ctx = context if context is not None else template_context(app)
+    if maintenance_hours is not None:
+        require.directory(str(app.www_dir), use_sudo=True)  # FIXME
+        sudo_upload_template('503.html', dest=str(app.www_dir / '503.html'), app_name=app.name,
+                             timestamp=helpers.strfnow(add_hours=maintenance_hours))
 
-    sudo_upload_template('supervisor.conf', dest=str(app.supervisor), context=ctx, mode='644',
-                         PAUSE={'pause': True, 'run': False}[command])
-
-    if command == 'run':
-        sudo('supervisorctl reread')
-        sudo('supervisorctl update %s' % app.name)
-        sudo('supervisorctl restart %s' % app.name)
-    else:
-        sudo('supervisorctl stop %s' % app.name)
-        #sudo('supervisorctl reread %s' % app.name)
-        #sudo('supervisorctl update %s' % app.name)
-    time.sleep(1)
-
-
-@task_app_from_environment
-def maintenance(app, hours=2, ctx=None):
-    """create a maintenance page giving a date when we expect the service will be back
-
-    :param hours: Number of hours we expect the downtime to last.
-    """
-    if ctx is None:
-        ctx = template_context(app)
-    require.directory(str(app.www), use_sudo=True)
-    sudo_upload_template('503.html', dest=str(app.www / '503.html'), context=ctx,
-                         timestamp=helpers.strfnow(add_hours=hours))
+    require_supervisor(app.supervisor, app, pause=True)
+    supervisor.update_config()
+    service.reload('nginx')
 
 
 @task_app_from_environment
 def uninstall(app):  # pragma: no cover
     """uninstall the app"""
-    for path in [app.supervisor, app.nginx_location, app.nginx_site]:
+    for path in (app.supervisor, app.nginx_location, app.nginx_site):
         if exists(path):
             files.remove(str(path), use_sudo=True)
 
+    supervisor.update_config()
     service.reload('nginx')
-    sudo('supervisorctl stop %s' % app.name)
 
 
 @task_app_from_environment('production')
@@ -386,48 +388,48 @@ def run_script(app, script_name, *args):  # pragma: no cover
     """"""
     cmd = '%s/python %s/scripts/%s.py %s#%s %s' % (
         app.venv_bin,
-        app.src / app.name, script_name,
+        app.src_dir / app.name, script_name,
         app.config.name, app.name,
         ' '.join('%s' % a for a in args))
-    with cd(str(app.home)):
+    with cd(str(app.home_dir)):
         sudo(cmd, user=app.name)
 
 
 @task_app_from_environment
 def create_downloads(app):
     """create all configured downloads"""
-    require.directory(str(app.download), use_sudo=True, mode='777')
+    require.directory(str(app.download_dir), use_sudo=True, mode='777')
 
     # run the script to create the exports from the database as glottolog3 user
     run_script(app, 'create_downloads')
 
-    require.directory(str(app.download), use_sudo=True, mode='755')
+    require.directory(str(app.download_dir), use_sudo=True, mode='755')
 
 
 @task_app_from_environment
 def copy_downloads(app, pattern='*'):
     """copy downloads for the app"""
-    require.directory(str(app.download), use_sudo=True, mode='777')
+    require.directory(str(app.download_dir), use_sudo=True, mode='777')
 
     local_app = importlib.import_module(app.name)  # FIXME
     local_dl_dir = pathlib.Path(local_app.__file__).parent / 'static' / 'download'
     for f in local_dl_dir.glob(pattern):
-        require.file(str(app.download / f.name), source=f, use_sudo=True,
+        require.file(str(app.download_dir / f.name), source=f, use_sudo=True,
                      owner=app.name, group=app.name)
 
-    require.directory(str(app.download), use_sudo=True, mode='755')
+    require.directory(str(app.download_dir), use_sudo=True, mode='755')
 
 
 @task_app_from_environment
 def copy_rdfdump(app):
     """copy rdfdump for the app"""
-    execute(copy_downloads, app, pattern='*.n3.gz')
+    copy_downloads.execute_inner(app, pattern='*.n3.gz')
 
 
-@task_app_from_environment
+@task_app_from_environment('production')
 def pip_freeze(app):
     """write installed versions to <app_name>/requirements.txt"""
-    with python.virtualenv(str(app.venv)):
+    with python.virtualenv(str(app.venv_dir)):
         stdout = run('pip freeze', combine_stderr=False)
 
     def iterlines(lines):

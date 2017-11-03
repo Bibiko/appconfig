@@ -12,7 +12,7 @@ def test_app():
     assert app.port == app.workers == app.deploy_duration == 1
     assert app.with_blog == app.pg_collkey == app.pg_unaccent == True
     assert app.require_deb == app.require_pip == ['1']
-    assert app.home / 'spam' == app.config / 'spam' == app.www / 'spam'
+    assert app.home_dir / 'spam' == app.www_dir / 'spam' == app.venv_dir / 'spam'
 
     with pytest.raises(ValueError, match='missing'):
         config.App(**{k: '1' for k in config.App._fields if k != 'name'})

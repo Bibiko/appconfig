@@ -103,9 +103,12 @@ class App(argparse.Namespace):
     })
 
     _fields.update(dict.fromkeys([
-        'home', 'config', 'www',
-        'venv', 'venv_bin', 'gunicorn', 'src', 'download',
-        'logs', 'error_log', 'logrotate',
+        'home_dir', 'www_dir',
+        'config',
+        'venv_dir', 'venv_bin',  'src_dir', 'download_dir',
+        'alembic', 'gunicorn',
+        'log_dir', 'access_log', 'error_log',
+        'logrotate',
         'supervisor',
         'nginx_default_site', 'nginx_site', 'nginx_location', 'nginx_htpasswd',
     ], pathlib.PurePosixPath))

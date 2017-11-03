@@ -19,6 +19,7 @@ TEST_DIR = pathlib.Path(__file__).parent
 def config(filename=TEST_DIR / 'apps.ini'):
     with pytest.warns(UserWarning) as w:
         result = Config.from_file(filename)
+    # TODO: use match when avail https://github.com/pytest-dev/pytest/pull/2711
     assert ['%s' % _.message for _ in w] == ['missing fabfile dir: testapp']
     return result
 
