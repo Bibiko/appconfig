@@ -28,7 +28,8 @@ from fabric.api import (
     env, task, execute, settings, shell_env, prompt, sudo, run, cd, local)
 from fabric.contrib.files import exists
 from fabric.contrib.console import confirm
-from fabtools import require, files, python, postgres, service, supervisor, system
+from fabtools import (
+    require, files, python, postgres, nginx, service, supervisor, system)
 
 from . import PKG_DIR, REPOS_DIR, APPS, helpers, varnish
 
@@ -264,14 +265,17 @@ def require_nginx(ctx, default_site, site, location, logrotate, clld_dir,
     auth, admin_auth = http_auth(htpasswd_file, username=htpasswd_user)
 
     # TODO: consider require.nginx.site
+    upload_app = functools.partial(sudo_upload_template, 'nginx-app.conf',
+                                   context=ctx, clld_dir=clld_dir,
+                                   auth=auth, admin_auth=admin_auth)
+
     if ctx['SITE']:
-        conf_dest = site
+        upload_app(dest=str(site))
+        nginx.enable(site.name)
     else:  # test environment
-        sudo_upload_template('nginx-default.conf', dest=str(default_site))
         require.directory(str(location.parent), use_sudo=True)
-        conf_dest = location
-    sudo_upload_template('nginx-app.conf', dest=str(conf_dest), context=ctx,
-                         clld_dir=clld_dir, auth=auth, admin_auth=admin_auth)
+        upload_app(dest=str(location))
+        sudo_upload_template('nginx-default.conf', dest=str(default_site))
 
 
 def http_auth(htpasswd_file, username):

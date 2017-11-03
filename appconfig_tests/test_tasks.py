@@ -40,6 +40,7 @@ def test_deploy(mocker):
         files=mocker.Mock(),
         python=mocker.DEFAULT,
         postgres=mocker.Mock(),
+        nginx=mocker.Mock(),
         service=mocker.Mock(),
         supervisor=mocker.Mock(),
         system=mocker.Mock(**{'distrib_id.return_value': 'Ubuntu',
