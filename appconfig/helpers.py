@@ -10,6 +10,10 @@ __all__ = ['caller_dirname', 'duplicates', 'strfnow']
 
 
 def caller_dirname(steps=1):
+    """
+
+    >>> assert caller_dirname()
+    """
     frame = sys._getframe(steps + 1)
 
     try:

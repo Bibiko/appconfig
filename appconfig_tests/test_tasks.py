@@ -10,6 +10,19 @@ from appconfig import tasks
 pytestmark = pytest.mark.usefixtures('APP')
 
 
+def test_deploy_distrib(mocker):
+    di = mocker.patch('appconfig.tasks.system.distrib_id')
+    di.return_value = 'nondistribution'
+    with pytest.raises(AssertionError):
+        tasks.deploy('production')
+
+    di.return_value = 'Ubuntu'
+    dc = mocker.patch('appconfig.tasks.system.distrib_codename')
+    dc.return_value = 'noncodename'
+    with pytest.raises(ValueError, match='unsupported platform'):
+        tasks.deploy('production')
+
+
 def test_deploy(mocker):
     mocker.patch.multiple('appconfig.tasks',
         time=mocker.Mock(),
@@ -21,7 +34,7 @@ def test_deploy(mocker):
         run=mocker.Mock(return_value='{"status": "ok"}'),
         cd=mocker.DEFAULT,
         local=mocker.Mock(),
-        exists=mocker.Mock(return_value=True),
+        exists=mocker.Mock(side_effect=lambda x: x.endswith('alembic.ini')),
         confirm=mocker.Mock(return_value=True),
         require=mocker.Mock(),
         files=mocker.Mock(),

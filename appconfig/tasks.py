@@ -164,7 +164,7 @@ def deploy(app, with_blog=None, with_alembic=False):
 
     if not with_alembic and confirm('Recreate database?', default=False):
         upload_local_sqldump(app, ctx, lsb_codename)
-    elif exists(app.src_dir / 'alembic.ini') and confirm('Upgrade database?', default=False):
+    elif exists(str(app.src_dir / 'alembic.ini')) and confirm('Upgrade database?', default=False):
         alembic_upgrade_head(app, ctx)
 
     start.execute_inner(app)
@@ -229,7 +229,7 @@ def require_config(filepath, app, ctx):
     # We only set add a setting clld.files, if the corresponding directory exists;
     # otherwise the app would throw an error on startup.
     files_dir = app.www_dir / 'files'
-    files = files_dir if exists(files_dir) else None
+    files = files_dir if exists(str(files_dir)) else None
     sudo_upload_template('config.ini', dest=str(filepath), context=ctx, files=files)
 
 
@@ -365,7 +365,7 @@ def stop(app, maintenance_hours=2):
 def uninstall(app):  # pragma: no cover
     """uninstall the app"""
     for path in (app.supervisor, app.nginx_location, app.nginx_site):
-        if exists(path):
+        if exists(str(path)):
             files.remove(str(path), use_sudo=True)
 
     supervisor.update_config()

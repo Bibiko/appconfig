@@ -1,8 +1,20 @@
 # test_config.py
 
 import pytest
+import argparse
 
 from appconfig import config
+
+
+def test_config_validate():
+    with pytest.raises(ValueError, match='name mismatch'):
+        config.Config({'spam': argparse.Namespace(name='eggs')}).validate()
+
+    with pytest.raises(ValueError, match='duplicate port'):
+        config.Config({
+            'spam': argparse.Namespace(name='spam', port=42),
+            'eggs': argparse.Namespace(name='eggs', port=42),
+        }).validate()
 
 
 def test_app():
