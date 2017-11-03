@@ -438,10 +438,11 @@ def pip_freeze(app):
 
     def iterlines(lines):
         warning = ('\x1b[33m', 'You should ')
+        warning_within = ('SNIMissingWarning', 'InsecurePlatformWarning')
         app_git = '%s.git' % app.name.lower()
         ignore = {'babel', 'fabric', 'fabtools', 'newrelic', 'paramiko', 'pycrypto', 'pyx'}
         for line in lines:
-            if line.startswith(warning):
+            if line.startswith(warning) or any(w in line for w in warning_within):
                 continue  # https://github.com/pypa/pip/issues/2470
             elif app_git in line or line.partition('==')[0].lower() in ignore:
                 continue
