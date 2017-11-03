@@ -349,7 +349,7 @@ def start(app):
 
 
 @task_app_from_environment
-def stop(app, maintenance_hours=2):
+def stop(app, maintenance_hours=1):
     """pause app by changing the supervisord config
 
     create a maintenance page giving a date when we expect the service will be back
