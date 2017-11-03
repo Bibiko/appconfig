@@ -81,7 +81,7 @@ def cache(app):  # pragma: no cover
         require.file(sites_vcl, include + '\n', use_sudo=True)
 
     require.directory(site_config_dir, use_sudo=True)
-    require_file(site_config, SITE_VCL_TEMPLATE.format(app=app), use_sudo=True)
+    require.file(site_config, SITE_VCL_TEMPLATE.format(app=app), use_sudo=True)
     service.restart('varnish')
 
     tasks.sudo_upload_template('nginx-app.conf', dest=app.nginx_site,

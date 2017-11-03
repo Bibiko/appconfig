@@ -103,8 +103,8 @@ def template_context(app, workers=3, with_blog=False,):
             ('bloguser', app.name),
             ('blogpassword', ''),
         ]:
-            ctx[key] = (os.environ.get(('%s_%s' % (app.name, key)).upper())
-                        or prompt('Blog %s:' % key[4:], default=default))
+            ctx[key] = os.environ.get(('%s_%s' % (app.name, key)).upper()) or \
+                       prompt('Blog %s:' % key[4:], default=default)
         assert ctx['blogpassword']
 
     return ctx
