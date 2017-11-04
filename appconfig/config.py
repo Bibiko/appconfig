@@ -65,6 +65,8 @@ class ConfigParser(configparser.ConfigParser):
     @classmethod
     def from_file(cls, filename, encoding='utf-8-sig', **kwargs):
         self = cls(**kwargs)
+        if isinstance(filename, pathlib.Path):
+            filename = str(filename)
         with io.open(filename, encoding=encoding) as fd:
             self.read_file(fd)
         return self

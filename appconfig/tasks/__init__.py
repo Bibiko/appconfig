@@ -17,7 +17,7 @@ import functools
 
 import fabric.api
 
-from .. import helpers
+from .. import _compat, helpers
 
 __all__ = ['init', 'task_app_from_environment']
 
@@ -66,3 +66,6 @@ from .varnish import *
 from .other import *
 
 __all__ += deployment.__all__ + varnish.__all__+ other.__all__
+
+if _compat.PY2:  # https://bugs.python.org/issue21720
+    __all__ = map(str, __all__)
