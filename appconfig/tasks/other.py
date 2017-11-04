@@ -12,7 +12,6 @@ from fabtools import require, python
 from .. import REPOS_DIR
 
 from . import task_app_from_environment
-from . import varnish
 
 __all__ = [
     'run_script', 'create_downloads',
