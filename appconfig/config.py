@@ -105,6 +105,7 @@ class App(argparse.Namespace):
     _fields.update(dict.fromkeys([
         'home_dir', 'www_dir',
         'config',
+        'gunicorn_pid',
         'venv_dir', 'venv_bin', 'src_dir', 'download_dir',
         'alembic', 'gunicorn',
         'log_dir', 'access_log', 'error_log',

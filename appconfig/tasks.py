@@ -163,6 +163,11 @@ def deploy(app, with_blog=None, with_alembic=False):
                   clld_dir=clld_dir,
                   htpasswd_file=app.nginx_htpasswd, htpasswd_user=app.name)
 
+    # if gunicorn runs, make it gracefully reload the app by sending HUP
+    # TODO: consider 'supervisorctl signal HUP $name' instead (xenial+)
+    sudo('[ -f %(pid)s ] && kill -0 $(cat %(pid)s) 2> /dev/null '
+         '&& kill -HUP $(cat %(pid)s)' % {'pid': app.gunicorn_pid}) 
+
     if not with_alembic and confirm('Recreate database?', default=False):
         stop.execute_inner(app)
         upload_local_sqldump(app, ctx, lsb_codename)
@@ -335,8 +340,9 @@ def alembic_upgrade_head(app, ctx):
 def require_supervisor(filepath, app, pause=False):
     # TODO: consider require.supervisor.process
     sudo_upload_template('supervisor.conf', dest=str(filepath), mode='644',
-                         name=app.name, gunicorn=app.gunicorn, user=app.name, group=app.name,
-                         error_log=app.error_log, config=app.config, PAUSE=pause)
+                         name=app.name, gunicorn=app.gunicorn, config=app.config,
+                         user=app.name, group=app.name, pid_file=app.gunicorn_pid,
+                         error_log=app.error_log, PAUSE=pause)
 
 
 @task_app_from_environment
