@@ -217,7 +217,7 @@ def require_postgres(database_name, user_name, user_password, pg_unaccent, pg_co
         if not exists('/usr/lib/postgresql/%s/lib/collkey_icu.so' % pg_version):
             require.deb.packages(['postgresql-server-dev-%s' % pg_version, 'libicu-dev'])
             with cd('/tmp'):
-                sudo_upload_template('pg_collkey_Makefile', dest='Makefile', pg_version=pg_version)
+                sudo_upload_template('pg_collkey.Makefile', dest='Makefile', pg_version=pg_version)
                 require.file('collkey_icu.c', source=str(PG_COLLKEY_DIR / 'collkey_icu.c'))
                 run('make')
                 sudo('make install')
