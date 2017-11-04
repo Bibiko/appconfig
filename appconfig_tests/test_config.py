@@ -40,7 +40,7 @@ def test_app_fixture(app):
 def test_app_replace(app):
     assert app.replace().__dict__ == app.__dict__
     assert app.replace(require_deb='spam eggs').require_deb == ['spam', 'eggs']
-    assert app.replace(require_deb='').require_deb is not app.require_deb
+    assert app.replace().require_deb is not app.require_deb
 
     with pytest.raises(ValueError, match='unknown'):
         app.replace(nonfield='')

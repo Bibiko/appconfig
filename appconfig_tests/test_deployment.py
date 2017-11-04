@@ -17,8 +17,8 @@ def test_deploy_distrib(mocker):
         tasks.deploy('production')
 
     di.return_value = 'Ubuntu'
-    dc = mocker.patch('appconfig.tasks.deployment.system.distrib_codename')
-    dc.return_value = 'noncodename'
+    mocker.patch('appconfig.tasks.deployment.system.distrib_codename',
+                 return_value='noncodename')
     with pytest.raises(ValueError, match='unsupported platform'):
         tasks.deploy('production')
 
