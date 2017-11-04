@@ -94,6 +94,14 @@ def stop(app, maintenance_hours=1):
     service.reload('nginx')
 
 
+def require_supervisor(filepath, app, pause=False):
+    # TODO: consider require.supervisor.process
+    sudo_upload_template('supervisor.conf', dest=str(filepath), mode='644',
+                         name=app.name, gunicorn=app.gunicorn, config=app.config,
+                         user=app.name, group=app.name, pid_file=app.gunicorn_pid,
+                         error_log=app.error_log, PAUSE=pause)
+
+
 @task_app_from_environment
 def uninstall(app):  # pragma: no cover
     """uninstall the app"""
@@ -318,11 +326,3 @@ def alembic_upgrade_head(app, ctx):
     if confirm('Vacuum database?', default=False):
         flag = '-f ' if confirm('VACUUM FULL?', default=False) else ''
         sudo('vacuumdb %s-z -d %s' % (flag, app.name), user='postgres')
-
-
-def require_supervisor(filepath, app, pause=False):
-    # TODO: consider require.supervisor.process
-    sudo_upload_template('supervisor.conf', dest=str(filepath), mode='644',
-                         name=app.name, gunicorn=app.gunicorn, config=app.config,
-                         user=app.name, group=app.name, pid_file=app.gunicorn_pid,
-                         error_log=app.error_log, PAUSE=pause)
