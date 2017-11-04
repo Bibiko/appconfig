@@ -6,7 +6,7 @@ from appconfig import tasks
 
 
 def test_init(mocker, app_name='nonname'):
-    mocker.patch('appconfig.tasks.APPS', {app_name: mocker.sentinel.app})
+    mocker.patch('appconfig.APPS', {app_name: mocker.sentinel.app})
 
     try:
         tasks.init(app_name)

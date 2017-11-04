@@ -17,7 +17,6 @@ import functools
 
 import fabric.api
 
-from .. import APPS
 from .. import helpers
 
 __all__ = ['init', 'task_app_from_environment']
@@ -30,6 +29,7 @@ fabric.api.env.use_ssh_config = True  # configure your username in .ssh/config
 
 def init(app_name=None):
     global APP
+    from .. import APPS
     if app_name is None:  # pragma: no cover
         app_name = helpers.caller_dirname()
     APP = APPS[app_name]
