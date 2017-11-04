@@ -15,9 +15,11 @@ from __future__ import unicode_literals
 
 import functools
 
+from .._compat import PY2
+
 import fabric.api
 
-from .. import _compat, helpers
+from .. import helpers
 
 __all__ = ['init', 'task_app_from_environment']
 
@@ -67,5 +69,5 @@ from .other import *
 
 __all__ += deployment.__all__ + varnish.__all__+ other.__all__
 
-if _compat.PY2:  # https://bugs.python.org/issue21720
-    __all__ = map(str, __all__)
+if PY2:  # pragma: no cover
+    __all__ = map(str, __all__)  # https://bugs.python.org/issue21720

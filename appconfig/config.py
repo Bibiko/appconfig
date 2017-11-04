@@ -18,7 +18,7 @@ import argparse
 import warnings
 import configparser
 
-from ._compat import pathlib, iteritems, itervalues
+from ._compat import PY2, pathlib, iteritems, itervalues
 
 from . import helpers
 
@@ -65,7 +65,7 @@ class ConfigParser(configparser.ConfigParser):
     @classmethod
     def from_file(cls, filename, encoding='utf-8-sig', **kwargs):
         self = cls(**kwargs)
-        if isinstance(filename, pathlib.Path):
+        if PY2 and isinstance(filename, pathlib.Path):  # pragma: no cover
             filename = str(filename)
         with io.open(filename, encoding=encoding) as fd:
             self.read_file(fd)
