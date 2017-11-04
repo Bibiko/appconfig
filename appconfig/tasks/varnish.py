@@ -19,7 +19,8 @@ from __future__ import unicode_literals
 from fabric.contrib import files
 from fabtools import require, service
 
-from . import tasks
+from . import task_app_from_environment
+from . import deployment  # FIXME
 
 __all__ = ['cache', 'uncache']
 
@@ -64,6 +65,7 @@ sub vcl_fetch {{
 """
 
 
+@task_app_from_environment('production')
 def cache(app):  # pragma: no cover
     """require an app to be put behind varnish"""
     require.deb.package('varnish')
@@ -84,14 +86,15 @@ def cache(app):  # pragma: no cover
     require.file(site_config, SITE_VCL_TEMPLATE.format(app=app), use_sudo=True)
     service.restart('varnish')
 
-    tasks.sudo_upload_template('nginx-app.conf', dest=app.nginx_site,
-                               context=tasks.template_context(app.replace(port=6081)),
-                               SITE=True)
+    context = deployment.template_context(app.replace(port=6081))
+    deployment.sudo_upload_template('nginx-app.conf', dest=app.nginx_site,
+                                    context=context, SITE=True)
     service.reload('nginx')
 
 
+@task_app_from_environment('production')
 def uncache(app):  # pragma: no cover
-    ctx = tasks.template_context(app)
-    ctx['auth'], _ = tasks.http_auth(username=app.name, htpasswd_file=app.nginx_htpasswd)
+    ctx = deployment.template_context(app)
+    ctx['auth'], _ = deployment.http_auth(username=app.name, htpasswd_file=app.nginx_htpasswd)
     require.file(app.nginx_site, SITE_VCL_TEMPLATE.format(**ctx))
     service.reload('nginx')

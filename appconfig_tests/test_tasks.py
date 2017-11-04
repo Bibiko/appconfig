@@ -2,59 +2,22 @@
 
 from __future__ import unicode_literals
 
-import pytest
-
 from appconfig import tasks
 
 
-pytestmark = pytest.mark.usefixtures('APP')
+def test_init(mocker, app_name='nonname'):
+    mocker.patch('appconfig.tasks.APPS', {app_name: mocker.sentinel.app})
+
+    try:
+        tasks.init(app_name)
+        assert tasks.APP is mocker.sentinel.app
+    finally:
+        tasks.APP = None
 
 
-def test_deploy_distrib(mocker):
-    di = mocker.patch('appconfig.tasks.system.distrib_id')
-    di.return_value = 'nondistribution'
-    with pytest.raises(AssertionError):
-        tasks.deploy('production')
+def test_tasks(mocker):
+    mocker.patch('appconfig.tasks.fabric.api.execute', autospec=True)
 
-    di.return_value = 'Ubuntu'
-    dc = mocker.patch('appconfig.tasks.system.distrib_codename')
-    dc.return_value = 'noncodename'
-    with pytest.raises(ValueError, match='unsupported platform'):
-        tasks.deploy('production')
-
-
-def test_deploy(mocker):
-    mocker.patch.multiple('appconfig.tasks',
-        time=mocker.Mock(),
-        getpass=mocker.Mock(**{'getpass.return_value': 'password'}),
-        pathlib=mocker.DEFAULT,
-        env=mocker.DEFAULT,
-        prompt=mocker.Mock(return_value='app'),
-        sudo=mocker.Mock(return_value='/usr/venvs/__init__.py'),
-        run=mocker.Mock(return_value='{"status": "ok"}'),
-        cd=mocker.DEFAULT,
-        local=mocker.Mock(),
-        exists=mocker.Mock(side_effect=lambda x: x.endswith('alembic.ini')),
-        confirm=mocker.Mock(return_value=True),
-        require=mocker.Mock(),
-        files=mocker.Mock(),
-        python=mocker.DEFAULT,
-        postgres=mocker.Mock(),
-        nginx=mocker.Mock(),
-        service=mocker.Mock(),
-        supervisor=mocker.Mock(),
-        system=mocker.Mock(**{'distrib_id.return_value': 'Ubuntu',
-                              'distrib_codename.return_value': 'xenial'}),
-    )
-
-    tasks.deploy('test')
-    tasks.deploy('test', with_alembic=True)
-    tasks.deploy('production')
-    tasks.deploy('production', with_alembic=True)
-
-
-@pytest.mark.usefixtures('execute')
-def test_tasks():
     tasks.deploy('test')
     tasks.start('test')
     tasks.stop('test')

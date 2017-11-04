@@ -1,15 +1,4 @@
-# tasks.py - top-level fabric tasks: from appconfig.tasks import *
-
-"""
-fabric tasks
-------------
-
-We use the following mechanism to provide common task implementations for all clld apps:
-This module defines and exports tasks which take a first argument "environment".
-The environment is used to determine the correct host to run the actual task on.
-To connect tasks to a certain app, the app's fabfile needs to import this module
-and run the init function, passing an app name defined in the global clld app config.
-"""
+# deployment.py
 
 from __future__ import unicode_literals
 
@@ -19,27 +8,22 @@ import time
 import getpass
 import platform
 import tempfile
-import importlib
 import functools
 
-from ._compat import pathlib, iteritems
+from .._compat import pathlib, iteritems
 
-from fabric.api import (
-    env, task, execute, settings, shell_env, prompt, sudo, run, cd, local)
+from fabric.api import env, settings, shell_env, prompt, sudo, run, cd, local
 from fabric.contrib.files import exists
 from fabric.contrib.console import confirm
 from fabtools import (
-    require, files, python, postgres, nginx, service, supervisor, system)
+    require, files, python, postgres, nginx, system, service, supervisor)
 
-from . import PKG_DIR, REPOS_DIR, APPS, helpers, varnish
+from .. import PKG_DIR
+from .. import helpers
 
-__all__ = [
-    'init', 'task_app_from_environment',
-    'deploy', 'start', 'stop', 'uninstall',
-    'cache', 'uncache',
-    'run_script', 'create_downloads', 'copy_downloads', 'copy_rdfdump',
-    'pip_freeze',
-]
+from . import task_app_from_environment
+
+__all__ = ['deploy', 'start', 'stop', 'uninstall']
 
 PLATFORM = platform.system().lower()
 
@@ -48,44 +32,6 @@ BIBUTILS_DIR = PKG_DIR / 'bibutils'
 PG_COLLKEY_DIR = PKG_DIR / 'pg_collkey-v0.5'
 
 TEMPLATE_DIR = PKG_DIR / 'templates'
-
-APP = None
-
-
-env.use_ssh_config = True  # configure your username in .ssh/config
-
-
-def init(app_name=None):
-    global APP
-    if app_name is None:
-        app_name = helpers.caller_dirname()
-    APP = APPS[app_name]
-
-
-def task_app_from_environment(func_or_environment):
-    if callable(func_or_environment):
-        func, _environment = func_or_environment, None
-    else:
-        func, _environment = None, func_or_environment
-
-    if func is not None:
-        @functools.wraps(func)
-        def wrapper(environment, *args, **kwargs):
-            assert environment in ('production', 'test')
-            if not env.hosts:
-                # allow overriding the hosts by using fab's -H option
-                env.hosts = [getattr(APP, environment)]
-            env.environment = environment
-            return execute(func, APP, *args, **kwargs)
-        wrapper.execute_inner = func
-        return task(wrapper)
-    else:
-        def decorator(_func):
-            _wrapper = task_app_from_environment(_func).wrapped
-            wrapper = functools.wraps(_wrapper)(functools.partial(_wrapper, _environment))
-            wrapper.execute_inner = _wrapper.execute_inner
-            return task(wrapper)
-        return decorator
 
 
 def template_context(app, workers=3, with_blog=False,):
@@ -123,6 +69,43 @@ def sudo_upload_template(template, dest, context=None, mode=None, **kwargs):
 
 
 @task_app_from_environment
+def start(app):
+    """start app by changing the supervisord config"""
+    require_supervisor(app.supervisor, app)
+    supervisor.update_config()
+    service.reload('nginx')
+
+
+@task_app_from_environment
+def stop(app, maintenance_hours=1):
+    """pause app by changing the supervisord config
+
+    create a maintenance page giving a date when we expect the service will be back
+    :param maintenance_hours: Number of hours we expect the downtime to last.
+    """
+    if maintenance_hours is not None:
+        require.directory(str(app.www_dir), use_sudo=True)  # FIXME
+        timestamp = helpers.strfnow(add_hours=maintenance_hours)
+        sudo_upload_template('503.html', dest=str(app.www_dir / '503.html'),
+                             app_name=app.name, timestamp=timestamp)
+
+    require_supervisor(app.supervisor, app, pause=True)
+    supervisor.update_config()
+    service.reload('nginx')
+
+
+@task_app_from_environment
+def uninstall(app):  # pragma: no cover
+    """uninstall the app"""
+    for path in (app.supervisor, app.nginx_location, app.nginx_site):
+        if exists(str(path)):
+            files.remove(str(path), use_sudo=True)
+
+    supervisor.update_config()
+    service.reload('nginx')
+
+
+@task_app_from_environment
 def deploy(app, with_blog=None, with_alembic=False):
     """deploy the app"""
     assert system.distrib_id() == 'Ubuntu'
@@ -143,12 +126,12 @@ def deploy(app, with_blog=None, with_alembic=False):
                      lsb_codename=lsb_codename)
 
     workers = 3 if app.workers > 3 and env.environment == 'test' else app.workers
-    with_blog=with_blog if with_blog is not None else app.with_blog
+    with_blog = with_blog if with_blog is not None else app.with_blog
     ctx = template_context(app, workers=workers, with_blog=with_blog)
 
     require_config(app.config, app, ctx)
 
-    venv_python='python2' if lsb_codename == 'precise' else 'python3'
+    venv_python = 'python2' if lsb_codename == 'precise' else 'python3'
     clld_dir = require_venv(app.venv_dir, venv_python=venv_python,
                             require_packages=[app.app_pkg] + app.require_pip,
                             assets_name=app.name)
@@ -166,7 +149,7 @@ def deploy(app, with_blog=None, with_alembic=False):
     # if gunicorn runs, make it gracefully reload the app by sending HUP
     # TODO: consider 'supervisorctl signal HUP $name' instead (xenial+)
     sudo('[ -f %(pid)s ] && kill -0 $(cat %(pid)s) 2> /dev/null '
-         '&& kill -HUP $(cat %(pid)s)' % {'pid': app.gunicorn_pid}) 
+         '&& kill -HUP $(cat %(pid)s)' % {'pid': app.gunicorn_pid})
 
     if not with_alembic and confirm('Recreate database?', default=False):
         stop.execute_inner(app)
@@ -343,121 +326,3 @@ def require_supervisor(filepath, app, pause=False):
                          name=app.name, gunicorn=app.gunicorn, config=app.config,
                          user=app.name, group=app.name, pid_file=app.gunicorn_pid,
                          error_log=app.error_log, PAUSE=pause)
-
-
-@task_app_from_environment
-def start(app):
-    """start app by changing the supervisord config"""
-    require_supervisor(app.supervisor, app)
-    supervisor.update_config()
-    service.reload('nginx')
-
-
-@task_app_from_environment
-def stop(app, maintenance_hours=1):
-    """pause app by changing the supervisord config
-
-    create a maintenance page giving a date when we expect the service will be back
-    :param maintenance_hours: Number of hours we expect the downtime to last.
-    """
-    if maintenance_hours is not None:
-        require.directory(str(app.www_dir), use_sudo=True)  # FIXME
-        timestamp = helpers.strfnow(add_hours=maintenance_hours)
-        sudo_upload_template('503.html', dest=str(app.www_dir / '503.html'),
-                             app_name=app.name, timestamp=timestamp)
-
-    require_supervisor(app.supervisor, app, pause=True)
-    supervisor.update_config()
-    service.reload('nginx')
-
-
-@task_app_from_environment
-def uninstall(app):  # pragma: no cover
-    """uninstall the app"""
-    for path in (app.supervisor, app.nginx_location, app.nginx_site):
-        if exists(str(path)):
-            files.remove(str(path), use_sudo=True)
-
-    supervisor.update_config()
-    service.reload('nginx')
-
-
-@task_app_from_environment('production')
-def cache(app):
-    """"""
-    execute(varnish.cache, app)
-
-
-@task_app_from_environment('production')
-def uncache(app):
-    execute(varnish.uncache, app)
-
-
-@task_app_from_environment
-def run_script(app, script_name, *args):  # pragma: no cover
-    """"""
-    cmd = '%s/python %s/scripts/%s.py %s#%s %s' % (
-        app.venv_bin,
-        app.src_dir / app.name, script_name,
-        app.config.name, app.name,
-        ' '.join('%s' % a for a in args))
-    with cd(str(app.home_dir)):
-        sudo(cmd, user=app.name)
-
-
-@task_app_from_environment
-def create_downloads(app):
-    """create all configured downloads"""
-    require.directory(str(app.download_dir), use_sudo=True, mode='777')
-
-    # run the script to create the exports from the database as glottolog3 user
-    run_script(app, 'create_downloads')
-
-    require.directory(str(app.download_dir), use_sudo=True, mode='755')
-
-
-@task_app_from_environment
-def copy_downloads(app, pattern='*'):
-    """copy downloads for the app"""
-    require.directory(str(app.download_dir), use_sudo=True, mode='777')
-
-    local_app = importlib.import_module(app.name)  # FIXME
-    local_dl_dir = pathlib.Path(local_app.__file__).parent / 'static' / 'download'
-    for f in local_dl_dir.glob(pattern):
-        require.file(str(app.download_dir / f.name), source=f,
-                     use_sudo=True, owner=app.name, group=app.name)
-
-    require.directory(str(app.download_dir), use_sudo=True, mode='755')
-
-
-@task_app_from_environment
-def copy_rdfdump(app):
-    """copy rdfdump for the app"""
-    copy_downloads.execute_inner(app, pattern='*.n3.gz')
-
-
-@task_app_from_environment('production')
-def pip_freeze(app):
-    """write installed versions to <app_name>/requirements.txt"""
-    with python.virtualenv(str(app.venv_dir)):
-        stdout = run('pip freeze', combine_stderr=False)
-
-    def iterlines(lines):
-        warning = ('\x1b[33m', 'You should ')
-        warning_within = ('SNIMissingWarning', 'InsecurePlatformWarning')
-        app_git = '%s.git' % app.name.lower()
-        ignore = {'babel', 'fabric', 'fabtools', 'newrelic', 'paramiko', 'pycrypto', 'pyx'}
-        for line in lines:
-            if line.startswith(warning) or any(w in line for w in warning_within):
-                continue  # https://github.com/pypa/pip/issues/2470
-            elif app_git in line or line.partition('==')[0].lower() in ignore:
-                continue
-            elif 'clld.git' in line:
-                line = 'clld'
-            elif 'clldmpg.git' in line:
-                line = 'clldmpg'
-            yield line + '\n'
-
-    target = REPOS_DIR / app.name / 'requirements.txt'
-    with target.open('w', encoding='ascii') as fp:
-        fp.writelines(iterlines(stdout.splitlines()))
