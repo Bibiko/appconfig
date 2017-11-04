@@ -156,8 +156,8 @@ def deploy(app, with_blog=None, with_alembic=False):
 
     # if gunicorn runs, make it gracefully reload the app by sending HUP
     # TODO: consider 'supervisorctl signal HUP $name' instead (xenial+)
-    sudo('[ -f %(pid)s ] && kill -0 $(cat %(pid)s) 2> /dev/null '
-         '&& kill -HUP $(cat %(pid)s)' % {'pid': app.gunicorn_pid})
+    sudo('[ -f {0} ] && kill -0 $(cat {0}) 2> /dev/null '
+         '&& kill -HUP $(cat {0})'.format(app.gunicorn_pid))
 
     if not with_alembic and confirm('Recreate database?', default=False):
         stop.execute_inner(app)
