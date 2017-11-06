@@ -13,7 +13,7 @@ import functools
 from .._compat import pathlib, iteritems
 
 from fabric.api import env, settings, shell_env, prompt, sudo, run, cd, local
-from fabric.contrib.files import exists, append
+from fabric.contrib.files import exists
 from fabric.contrib.console import confirm
 from fabtools import (
     require, files, python, postgres, nginx, system, service, supervisor)
@@ -68,13 +68,6 @@ def sudo_upload_template(template, dest, context=None, mode=None, **kwargs):
                           backup=False, mode=mode, chown=True)
 
 
-def upload_or_append(path, contents, use_sudo=False):
-    if files.exists(path):
-        append(path, text=contents, use_sudo=use_sudo)
-    else:
-        require.file(path, contents=contents, use_sudo=use_sudo, mode=None)
-
-
 @task_app_from_environment
 def start(app):
     """start app by changing the supervisord config"""
@@ -91,7 +84,7 @@ def stop(app, maintenance_hours=1):
     :param maintenance_hours: Number of hours we expect the downtime to last.
     """
     if maintenance_hours is not None:
-        require.directory(str(app.www_dir), use_sudo=True)  # FIXME
+        require.directory(str(app.www_dir), use_sudo=True)
         timestamp = helpers.strfnow(add_hours=maintenance_hours)
         sudo_upload_template('503.html', dest=str(app.www_dir / '503.html'),
                              app_name=app.name, timestamp=timestamp)
@@ -147,9 +140,9 @@ def deploy(app, with_blog=None, with_alembic=False):
     require_config(app.config, app, ctx)
 
     venv_python = 'python2' if lsb_codename == 'precise' else 'python3'
-    clld_dir = require_venv(app.venv_dir, venv_python=venv_python,
-                            require_packages=[app.app_pkg] + app.require_pip,
-                            assets_name=app.name)
+    require_venv(app.venv_dir, venv_python=venv_python,
+                 require_packages=[app.app_pkg] + app.require_pip,
+                 assets_name=app.name)
 
     require_logging(app.log_dir,
                     logrotate=app.logrotate,
@@ -158,7 +151,7 @@ def deploy(app, with_blog=None, with_alembic=False):
     require_nginx(ctx,
                   default_site=app.nginx_default_site, site=app.nginx_site,
                   location=app.nginx_location, logrotate=app.logrotate,
-                  clld_dir=clld_dir,
+                  venv_dir=app.venv_dir,
                   htpasswd_file=app.nginx_htpasswd, htpasswd_user=app.name)
 
     # if gunicorn runs, make it gracefully reload the app by sending HUP
@@ -250,10 +243,6 @@ def require_venv(directory, venv_python, require_packages, assets_name):
         with python.virtualenv(str(directory)):
             require.python.packages(require_packages, use_sudo=True)
             sudo('webassets -m %s.assets build' % assets_name)
-            res = sudo('python -c "import clld; print(clld.__file__)"')
-
-    assert res.startswith('/usr/venvs') and '__init__.py' in res
-    return '/'.join(res.split('/')[:-1])
 
 
 def require_logging(log_dir, logrotate, access_log, error_log):
@@ -264,7 +253,7 @@ def require_logging(log_dir, logrotate, access_log, error_log):
                              access_log=access_log, error_log=error_log)
 
 
-def require_nginx(ctx, default_site, site, location, logrotate, clld_dir,
+def require_nginx(ctx, default_site, site, location, logrotate, venv_dir,
                   htpasswd_file, htpasswd_user):
     with shell_env(SYSTEMD_PAGER=''):
         require.nginx.server()
@@ -273,7 +262,7 @@ def require_nginx(ctx, default_site, site, location, logrotate, clld_dir,
 
     # TODO: consider require.nginx.site
     upload_app = functools.partial(sudo_upload_template, 'nginx-app.conf',
-                                   context=ctx, clld_dir=clld_dir,
+                                   context=ctx, clld_dir=get_clld_dir(venv_dir),
                                    auth=auth, admin_auth=admin_auth)
 
     if ctx['SITE']:
@@ -283,6 +272,14 @@ def require_nginx(ctx, default_site, site, location, logrotate, clld_dir,
         require.directory(str(location.parent), use_sudo=True)
         upload_app(dest=str(location))
         sudo_upload_template('nginx-default.conf', dest=str(default_site))
+
+
+def get_clld_dir(venv_dir):
+    # /usr/venvs/<app_name>/local/lib/python<version>/site-packages/clld/__init__.pyc
+    with python.virtualenv(str(venv_dir)):
+        stdout = sudo('python -c "import clld; print(clld.__file__)"')
+    clld_path = pathlib.PurePosixPath(stdout)
+    return clld_path.parent
 
 
 def http_auth(htpasswd_file, username):
