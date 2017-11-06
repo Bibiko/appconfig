@@ -114,6 +114,7 @@ class App(argparse.Namespace):
         'logrotate',
         'supervisor',
         'nginx_default_site', 'nginx_site', 'nginx_location', 'nginx_htpasswd',
+        'varnish_site',
     ], pathlib.PurePosixPath))
 
     def __init__(self, **kwargs):

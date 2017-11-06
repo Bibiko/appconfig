@@ -13,7 +13,7 @@ import functools
 from .._compat import pathlib, iteritems
 
 from fabric.api import env, settings, shell_env, prompt, sudo, run, cd, local
-from fabric.contrib.files import exists
+from fabric.contrib.files import exists, append
 from fabric.contrib.console import confirm
 from fabtools import (
     require, files, python, postgres, nginx, system, service, supervisor)
@@ -66,6 +66,13 @@ def sudo_upload_template(template, dest, context=None, mode=None, **kwargs):
     files.upload_template(template, dest, context, use_jinja=True,
                           template_dir=str(TEMPLATE_DIR), use_sudo=True,
                           backup=False, mode=mode, chown=True)
+
+
+def upload_or_append(path, contents, use_sudo=False):
+    if files.exists(path):
+        append(path, text=contents, use_sudo=use_sudo)
+    else:
+        require.file(path, contents=contents, use_sudo=use_sudo, mode=None)
 
 
 @task_app_from_environment
