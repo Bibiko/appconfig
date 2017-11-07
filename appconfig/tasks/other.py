@@ -2,8 +2,6 @@
 
 from __future__ import unicode_literals
 
-import importlib
-
 from .._compat import pathlib
 
 from fabric.api import sudo, run, cd
@@ -44,13 +42,12 @@ def create_downloads(app):
 
 
 @task_app_from_environment
-def copy_downloads(app, pattern='*'):
+def copy_downloads(app, source_dir, pattern='*'):
     """copy downloads for the app"""
     require.directory(str(app.download_dir), use_sudo=True, mode='777')
 
-    local_app = importlib.import_module(app.name)  # FIXME
-    local_dl_dir = pathlib.Path(local_app.__file__).parent / 'static' / 'download'
-    for f in local_dl_dir.glob(pattern):
+    source_dir = pathlib.Path(source_dir)
+    for f in source_dir.glob(pattern):
         require.file(str(app.download_dir / f.name), source=f,
                      use_sudo=True, owner=app.name, group=app.name)
 
@@ -58,9 +55,9 @@ def copy_downloads(app, pattern='*'):
 
 
 @task_app_from_environment
-def copy_rdfdump(app):
+def copy_rdfdump(app, source_dir):
     """copy rdfdump for the app"""
-    copy_downloads.execute_inner(app, pattern='*.n3.gz')
+    copy_downloads.execute_inner(app, source_dir, pattern='*.n3.gz')
 
 
 @task_app_from_environment('production')
