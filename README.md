@@ -39,3 +39,4 @@ must be available.
 As above, activate `appconfig`, change into the app's config directory and start the `deploy` task. In case of a database migration, answer `Recreate database?` in the negative and run the migrations on the host by confirming `Upgrade database?`.
 For wholesale replacemement, confirm `Recreate database?`.
 
+Note: Deploying new data implies deploying new code.
