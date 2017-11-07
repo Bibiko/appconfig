@@ -18,7 +18,7 @@ $ workon appconfig
 
 2. Change into the config directory for the app:
 ```
-$ cd appconfig/<app>
+$ cd appconfig/apps/<app>
 ```
 
 3. Run the `deploy` task, passing `test` or `production` as deployment mode and optionally a custom 

@@ -9,7 +9,7 @@ from .._compat import pathlib
 from fabric.api import sudo, run, cd
 from fabtools import require, python
 
-from .. import REPOS_DIR
+from .. import APPS_DIR
 
 from . import task_app_from_environment
 
@@ -85,6 +85,6 @@ def pip_freeze(app):
                 line = 'clldmpg'
             yield line + '\n'
 
-    target = REPOS_DIR / app.name / 'requirements.txt'
+    target = APPS_DIR / app.name / 'requirements.txt'
     with target.open('w', encoding='ascii') as fp:
         fp.writelines(iterlines(stdout.splitlines()))
