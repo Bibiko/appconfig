@@ -15,3 +15,6 @@ REPOS_DIR = PKG_DIR.parent
 CONFIG_FILE = REPOS_DIR / 'apps.ini'
 
 APPS = config.Config.from_file(CONFIG_FILE)
+
+# TODO: consider https://pypi.python.org/pypi/pyvbox
+#       for scripting tests with virtualbox
