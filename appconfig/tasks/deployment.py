@@ -186,7 +186,6 @@ def require_bibutils(executable='/usr/local/bin/bib2xml',
                 run('./configure')
                 run('make')
                 sudo('make install')
-        assert exists(executable) 
 
 
 def require_postgres(database_name, user_name, user_password, pg_unaccent, pg_collkey,
