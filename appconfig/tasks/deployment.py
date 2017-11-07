@@ -27,8 +27,6 @@ __all__ = ['deploy', 'start', 'stop', 'uninstall']
 
 PLATFORM = platform.system().lower()
 
-BIBUTILS_DIR = PKG_DIR / 'bibutils'
-
 PG_COLLKEY_DIR = PKG_DIR / 'pg_collkey-v0.5'
 
 TEMPLATE_DIR = PKG_DIR / 'templates'
@@ -175,22 +173,16 @@ def deploy(app, with_blog=None, with_alembic=False):
     assert json.loads(res)['status'] == 'ok'
 
 
-def require_bibutils(directory):  # pragma: no cover
-    """
-    tar -xzf bibutils_5.0_src.tgz -C {app.home_dir}
-    cd {app.home_dir}/bibutils_5.0
-    configure
-    make
-    sudo make install
-    """
-    # FIXME: update?, download/include in repo?
+def require_bibutils(directory,
+                     url='https://sourceforge.net/projects/bibutils/files/'
+                         'bibutils_6.2_src.tgz/download'):
     if not exists('/usr/local/bin/bib2xml'):
-        source = BIBUTILS_DIR / 'bibutils_5.0_src.tgz'
-        target = '/tmp/%s' % source.name
-        require.file(target, source=str(source), use_sudo=True, mode='')
-
-        sudo('tar -xzf %s -C %s' % (target, directory))
-        with cd(str(directory / 'bibutils_5.0')):
+        tgz = url.partition('/download')[0].rpartition('/')[2]
+        tdir = tgz.partition('_src.tgz')[0]
+        with cd('/tmp'):
+            require.file(str(tgz), url=url, use_sudo=True, mode='')
+            sudo('tar xzf %s -C %s' % (tgz, directory))
+        with cd(str(directory / tdir)):
             run('./configure')
             run('make')
             sudo('make install')
