@@ -13,7 +13,7 @@ import functools
 from .._compat import pathlib, iteritems
 
 from fabric.api import env, settings, shell_env, prompt, sudo, run, cd, local
-from fabric.contrib.files import exists
+from fabric.contrib.files import exists, comment
 from fabric.contrib.console import confirm
 from fabtools import (
     require, files, python, postgres, nginx, system, service, supervisor)
@@ -27,6 +27,8 @@ __all__ = ['deploy', 'start', 'stop', 'uninstall']
 
 PLATFORM = platform.system().lower()
 
+VBOX_HOSTNAMES = {'vbox', 'precise', 'trusty', 'xenial'}  # run on localhost
+
 PG_COLLKEY_DIR = PKG_DIR / 'pg_collkey-v0.5'
 
 TEMPLATE_DIR = PKG_DIR / 'templates'
@@ -36,6 +38,7 @@ def template_context(app, workers=3, with_blog=False,):
     ctx = {
         'SITE': {'test': False, 'production': True}[env.environment],
         'TEST': {'production': False, 'test': True}[env.environment],
+        'VBOX_LOCALHOST': env.host_string in VBOX_HOSTNAMES,
         'app': app, 'env': env, 'workers': workers,
         'auth': '',
         'bloghost': '', 'bloguser': '', 'blogpassword': '',
@@ -260,6 +263,8 @@ def require_nginx(ctx, default_site, site, location, logrotate, venv_dir,
     if ctx['SITE']:
         upload_app(dest=str(site))
         nginx.enable(site.name)
+        if ctx['VBOX_LOCALHOST']:
+            comment(default_site, 'server_name localhost;', use_sudo=True)
     else:  # test environment
         require.directory(str(location.parent), use_sudo=True)
         upload_app(dest=str(location))

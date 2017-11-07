@@ -34,6 +34,7 @@ def test_deploy(mocker):
         cd=mocker.DEFAULT,
         local=mocker.Mock(),
         exists=mocker.Mock(side_effect=lambda x: x.endswith('alembic.ini')),
+        comment=mocker.Mock(),
         confirm=mocker.Mock(return_value=True),
         require=mocker.Mock(),
         files=mocker.Mock(),

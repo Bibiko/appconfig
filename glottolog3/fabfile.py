@@ -1,5 +1,5 @@
 from fabric.api import cd, sudo
-from fabric.contrib import files, console
+from fabric.contrib import console
 from fabtools import require
 
 from appconfig.tasks import *
@@ -17,11 +17,3 @@ def load_sqldump(app, url=DUMP_URL, md5=DUMP_MD5):
         with cd('/tmp'):
             require.file(filename, url=url, md5=md5)
             sudo('gunzip -c %s | psql %s' % (filename, app.name), user=app.name)
-
-
-@task_app_from_environment('production')
-def enable_vbox(app):
-    # TODO: adapt normal template for this
-    files.comment(app.nginx_default_site, 'server_name localhost;', use_sudo=True)
-    files.sed(app.nginx_site, 'server_name glottolog.org;', 'server_name localhost;', use_sudo=True)
-    sudo('service nginx restart')

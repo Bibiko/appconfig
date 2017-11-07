@@ -2,8 +2,6 @@
 
 from __future__ import unicode_literals
 
-import os
-
 from fabric.api import settings, run
 from fabtools import require, files, service
 
@@ -41,7 +39,6 @@ def cache(app):
                                     app_domain=app.domain)
 
     _update_varnish_sites(app.varnish_site.parent)
-
 
     _update_nginx(app, with_varnish=True)
 
