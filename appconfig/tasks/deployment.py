@@ -124,7 +124,7 @@ def deploy(app, with_blog=None, with_alembic=False):
 
     require.users.user(app.name, create_home=True, shell='/bin/bash')
 
-    require_bibutils(app.home_dir)
+    require_bibutils()
 
     require_postgres(app.name,
                      user_name=app.name, user_password=app.name,
@@ -173,19 +173,20 @@ def deploy(app, with_blog=None, with_alembic=False):
     assert json.loads(res)['status'] == 'ok'
 
 
-def require_bibutils(directory,
+def require_bibutils(executable='/usr/local/bin/bib2xml',
                      url='https://sourceforge.net/projects/bibutils/files/'
                          'bibutils_6.2_src.tgz/download'):
-    if not exists('/usr/local/bin/bib2xml'):
+    if not exists(executable):
         tgz = url.partition('/download')[0].rpartition('/')[2]
         tdir = tgz.partition('_src.tgz')[0]
         with cd('/tmp'):
-            require.file(str(tgz), url=url, use_sudo=True, mode='')
-            sudo('tar xzf %s -C %s' % (tgz, directory))
-        with cd(str(directory / tdir)):
-            run('./configure')
-            run('make')
-            sudo('make install')
+            require.file(tgz, url=url, mode='')
+            run('tar xzf %s' % tgz)
+            with cd(tdir):
+                run('./configure')
+                run('make')
+                sudo('make install')
+        assert exists(executable) 
 
 
 def require_postgres(database_name, user_name, user_password, pg_unaccent, pg_collkey,
