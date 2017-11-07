@@ -26,12 +26,16 @@ host using `fab`'s `-H` option, e.g.
 ```
 $ fab -H vbox deploy:production
 ```
-Answer all questions regarding the database in the negative.
+Answer the prompts `Recreate database?` and `Upgrade database?` in the negative.
 
 
 ### Deploying new data
 
 New data can be deployed in two ways, either via alembic migrations, altering an existing database, or by replacing
 the database wholesale.
-In the first case, the migration must be pushed to the app's repository on GitHub.
+In the first case, the migration must be pushed to the app's repository on GitHub; in the second case a local app database
+must be available.
+
+As above, activate `appconfig`, change into the app's config directory and start the `deploy` task. In case of a database migration, answer `Recreate database?` in the negative and run the migrations on the host by confirming `Upgrade database?`.
+For wholesale replacemement, confirm `Recreate database?`.
 
