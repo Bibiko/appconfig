@@ -122,7 +122,7 @@ def deploy(app, with_blog=None, with_alembic=False):
     jre_deb = 'default-jre' if lsb_codename == 'xenial' else 'openjdk-6-jre'
     require.deb.packages(app.require_deb + [jre_deb])
 
-    require.users.user(app.name, shell='/bin/bash')
+    require.users.user(app.name, create_home=True, shell='/bin/bash')
 
     require_bibutils(app.home_dir)
 
