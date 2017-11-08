@@ -22,6 +22,15 @@ setup(
         'pathlib2; python_version < "3"',
         'pytz',
     ],
+    extras_require = {
+        'dev': ['flake8'],
+        'test': [
+            'pytest>=3.1',
+            'pytest-mock',
+            'mock',
+            'pytest-cov',
+        ],
+    },
     platforms='any',
     long_description='',
     classifiers=[
