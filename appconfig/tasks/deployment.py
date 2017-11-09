@@ -122,8 +122,8 @@ def deploy(app, with_blog=None, with_alembic=False):
     if lsb_codename not in ('precise', 'trusty', 'xenial'):
         raise ValueError('unsupported platform: %s' % lsb_codename)
 
-    jre_deb = 'default-jre' if lsb_codename == 'xenial' else 'openjdk-6-jre'
-    require.deb.packages(app.require_deb + [jre_deb])
+    require.deb.packages(getattr(app, 'require_deb_%s' % lsb_codename) +
+                         app.require_deb)
 
     require.users.user(app.name, create_home=True, shell='/bin/bash')
 
