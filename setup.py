@@ -22,7 +22,7 @@ setup(
         'pathlib2; python_version < "3"',
         'pytz',
     ],
-    extras_require = {
+    extras_require={
         'dev': ['flake8'],
         'test': [
             'pytest>=3.1',
