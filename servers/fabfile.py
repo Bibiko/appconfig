@@ -1,11 +1,10 @@
 import os
 
+from fabric import task
 from fabtools import require, service
 
-from appconfig.tasks import *
 
-
-@task_app_from_environment
+@task
 def munin_node():
     require.deb.packages(['munin-node'])
     require.users.user(
