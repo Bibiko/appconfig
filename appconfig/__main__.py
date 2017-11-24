@@ -1,19 +1,28 @@
+# __main__.py - command line interface
+
 from __future__ import unicode_literals, print_function
-import sys
 
-from clldutils.clilib import ArgumentParser
-from clldutils.markup import Table
+import argparse
 
-from appconfig import APPS
+from . import APPS
 
 
-def ls(args):
-    t = Table('id', 'domain', 'server')
-    for app in sorted(APPS.values(), key=lambda app: (app.production, app.name)):
-        t.append((app.name, app.domain, app.production))
-    print(t.render(tablefmt='simple'))
+def ls():
+    apps = sorted(APPS.values(), key=lambda a: (a.production, a.name))
+    table = [(a.name, a.domain, a.production) for a in apps]
+    cwidth = tuple(max(map(len, c)) for c in zip(*table))
+    tmpl = '{:%d} {:%d} {:%d}' % cwidth
+    print(tmpl.format('id', 'domain', 'server'))
+    print(tmpl.format(*('-' * w for w in cwidth)))
+    for r in table:
+        print(tmpl.format(*r))
 
 
 def main():  # pragma: no cover
-    parser = ArgumentParser('appconfig', ls)
-    sys.exit(parser.main())
+    parser = argparse.ArgumentParser(prog='appconfig', description='')
+    parser.add_argument('command', choices=['ls'])
+    args = parser.parse_args()
+    if args.command == 'ls':
+        ls()
+    else:
+        raise NotImplementedError

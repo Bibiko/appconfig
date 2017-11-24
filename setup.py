@@ -21,7 +21,6 @@ setup(
         'Jinja2',
         'pathlib2; python_version < "3"',
         'pytz',
-        'clldutils',
     ],
     extras_require={
         'dev': ['flake8'],
