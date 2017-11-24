@@ -4,8 +4,7 @@ from __future__ import unicode_literals, print_function
 
 import argparse
 
-from six.moves.urllib.request import urlopen
-from six.moves.urllib.error import HTTPError
+from ._compat import urlopen, HTTPError
 
 from . import APPS
 
@@ -22,13 +21,15 @@ def ls():
 
 
 def test_error(appid):
-    """
-    Test the error reporting of an app by requesting its /_raise URL.
-    """
+    """Test the error reporting of an app by requesting its /_raise URL."""
+    raise_url = 'http://{0.domain}/_raise'.format(APPS[appid])
     try:
-        urlopen('http://{0.domain}/_raise'.format(APPS[appid]))
+        u = urlopen(raise_url)
     except HTTPError as e:
         assert e.code == 500
+    else:
+        u.close()
+        raise RunimeError('url %r did not raise' % url)
 
 
 def main():  # pragma: no cover
@@ -36,6 +37,7 @@ def main():  # pragma: no cover
     parser.add_argument('command', choices=['ls', 'test_error'])
     parser.add_argument('args', nargs=argparse.REMAINDER)
     args = parser.parse_args()
+
     if args.command == 'ls':
         ls()
     elif args.command == 'test_error':
