@@ -12,10 +12,10 @@ from . import APPS
 
 def ls():
     apps = sorted(APPS.values(), key=lambda a: (a.production, a.name))
-    table = [(a.name, a.domain, a.production) for a in apps]
+    table = [(a.name, a.domain, a.production, a.stack) for a in apps]
     cwidth = tuple(max(map(len, c)) for c in zip(*table))
-    tmpl = '{:%d} {:%d} {:%d}' % cwidth
-    print(tmpl.format('id', 'domain', 'server'))
+    tmpl = '{:%d} {:%d} {:%d} {:%d}' % cwidth
+    print(tmpl.format('id', 'domain', 'server', 'stack'))
     print(tmpl.format(*('-' * w for w in cwidth)))
     for r in table:
         print(tmpl.format(*r))

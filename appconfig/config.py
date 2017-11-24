@@ -89,7 +89,7 @@ class App(argparse.Namespace):
 
     _fields = dict.fromkeys([
         'name', 'test', 'production',
-        'domain', 'error_email',
+        'domain', 'error_email', 'stack',
         'sqlalchemy_url', 'app_pkg',
     ])
 
