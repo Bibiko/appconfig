@@ -25,7 +25,7 @@ setup(
     extras_require={
         'dev': ['flake8'],
         'test': [
-            'pytest>=3.1',
+            'pytest>=3.3',
             'pytest-mock',
             'mock',
             'pytest-cov',
