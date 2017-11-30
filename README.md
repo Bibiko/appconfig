@@ -2,6 +2,8 @@
 
 Scripted deployment of dlce webapps
 
+[![Build Status](https://travis-ci.org/shh-dlce/appconfig.svg?branch=master)](https://travis-ci.org/shh-dlce/appconfig)
+
 
 ## Deploying an app
 
