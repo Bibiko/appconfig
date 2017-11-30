@@ -4,8 +4,8 @@ from fabtools import require
 
 from appconfig.tasks import *
 
-DUMP_URL = 'https://cdstar.shh.mpg.de/bitstreams/EAEA0-54DF-D3B3-7041-0/glottolog.sql.gz'
-DUMP_MD5 = '2cd8f1d52c7ea27b17937e205cb978a4'
+DUMP_URL = 'https://cdstar.shh.mpg.de/bitstreams/EAEA0-983F-6966-3616-0/glottolog.sql.gz'
+DUMP_MD5 = 'd38a9352b0f14077f6d57d0fd53f0477'
 
 init()
 
