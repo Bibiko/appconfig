@@ -10,8 +10,11 @@ setup(
     author_email='lingweb@shh.mpg.de',
     description='Remote control for DLCE apps',
     keywords='fabric',
-    url='',
+    license='Apache 2.0',
+    url='https://github.com/shh-dlce/appconfig',
     packages=find_packages(),
+    platforms='any',
+    python_requires='>=2.7,!=3.0.*,!=3.1.*,!=3.2.*,!=3.3.*',
     include_package_data=True,
     zip_safe=False,
     install_requires=[
@@ -25,13 +28,12 @@ setup(
     extras_require={
         'dev': ['flake8'],
         'test': [
+            'mock',
             'pytest>=3.3',
             'pytest-mock',
-            'mock',
             'pytest-cov',
         ],
     },
-    platforms='any',
     long_description='',
     classifiers=[
         'Private :: Do Not Upload',

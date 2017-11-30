@@ -18,7 +18,7 @@ import argparse
 import warnings
 import configparser
 
-from ._compat import PY2, pathlib, iteritems, itervalues
+from ._compat import pathlib, iteritems, itervalues
 
 from . import helpers
 
@@ -28,10 +28,10 @@ __all__ = ['Config']
 class Config(dict):
 
     @classmethod
-    def from_file(cls, filename, value_cls=None, validate=True):
+    def from_file(cls, filepath, value_cls=None, validate=True):
         if value_cls is None:
             value_cls = App
-        parser = ConfigParser.from_file(filename)
+        parser = ConfigParser.from_file(filepath)
         items = {s: value_cls(**parser[s]) for s in parser.sections()
                 if not s.startswith('_')}
         inst = cls(items)
@@ -63,11 +63,11 @@ class ConfigParser(configparser.ConfigParser):
     }
 
     @classmethod
-    def from_file(cls, filename, encoding='utf-8-sig', **kwargs):
+    def from_file(cls, filepath, encoding='utf-8-sig', **kwargs):
         self = cls(**kwargs)
-        if PY2 and isinstance(filename, pathlib.Path):  # pragma: no cover
-            filename = str(filename)
-        with io.open(filename, encoding=encoding) as fd:
+        if not isinstance(filepath, pathlib.Path):  # pragma: no cover
+            filepath = pathlib.Path(filepath)
+        with filepath.open(encoding=encoding) as fd:
             self.read_file(fd)
         return self
 
