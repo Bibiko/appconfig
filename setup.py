@@ -22,7 +22,7 @@ setup(
         'Fabric3>=1.11',
         'fabtools-python>=0.19.7',
         'Jinja2',
-        'pathlib2; python_version < "3"',
+        'pathlib2; python_version < "3.5"',
         'pytz',
     ],
     extras_require={

@@ -2,10 +2,9 @@
 
 from __future__ import unicode_literals
 
-import sys
-if sys.version_info < (3,):  
+try:
     import pathlib2 as pathlib
-else:
+except ImportError:
     import pathlib
 
 import pytest
