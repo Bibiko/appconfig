@@ -150,10 +150,14 @@ def deploy(app, with_blog=None, with_alembic=False):
                     access_log=app.access_log, error_log=app.error_log)
 
     require_nginx(ctx,
-                  default_site=app.nginx_default_site, site=app.nginx_site,
-                  location=app.nginx_location, logrotate=app.logrotate,
+                  default_site=app.nginx_default_site,
+                  site=app.nginx_site,
+                  location=app.nginx_location,
+                  logrotate=app.logrotate,
                   venv_dir=app.venv_dir,
-                  htpasswd_file=app.nginx_htpasswd, htpasswd_user=app.name)
+                  htpasswd_file=app.nginx_htpasswd,
+                  htpasswd_user=app.name,
+                  public=app.public)
 
     # if gunicorn runs, make it gracefully reload the app by sending HUP
     # TODO: consider 'supervisorctl signal HUP $name' instead (xenial+)
@@ -249,11 +253,11 @@ def require_logging(log_dir, logrotate, access_log, error_log):
 
 
 def require_nginx(ctx, default_site, site, location, logrotate, venv_dir,
-                  htpasswd_file, htpasswd_user):
+                  htpasswd_file, htpasswd_user, public=False):
     with shell_env(SYSTEMD_PAGER=''):
         require.nginx.server()
 
-    auth, admin_auth = http_auth(htpasswd_file, username=htpasswd_user)
+    auth, admin_auth = http_auth(htpasswd_file, username=htpasswd_user, public=public)
 
     # TODO: consider require.nginx.site
     upload_app = functools.partial(sudo_upload_template, 'nginx-app.conf',
@@ -279,11 +283,16 @@ def get_clld_dir(venv_dir):
     return clld_path.parent
 
 
-def http_auth(htpasswd_file, username):
-    userpass = getpass.getpass(prompt='HTTP Basic Auth password for user %s: ' % username)
+def http_auth(htpasswd_file, username, public=False):
+    if not (public and env.environment == 'production'):
+        userpass = getpass.getpass(
+            prompt='HTTP Basic Auth password for user %s: ' % username)
+    else:
+        userpass = None
     pwds = {username: userpass, 'admin': ''}
     while not pwds['admin']:
-        pwds['admin'] = getpass.getpass(prompt='HTTP Basic Auth password for user admin: ')
+        pwds['admin'] = getpass.getpass(
+            prompt='HTTP Basic Auth password for user admin: ')
 
     require.directory(str(htpasswd_file.parent), use_sudo=True)
     pairs = [(u, p) for u, p in iteritems(pwds) if p]

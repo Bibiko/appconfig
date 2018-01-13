@@ -11,10 +11,16 @@ from . import APPS
 
 def ls():
     apps = sorted(APPS.values(), key=lambda a: (a.production, a.name))
-    table = [(a.name, a.domain, a.production, a.stack) for a in apps]
+    table = [
+        (
+            '{0}'.format(i + 1),
+            a.name, a.domain,
+            a.production,
+            a.stack,
+            '{0}'.format(a.public)) for i, a in enumerate(apps)]
     cwidth = [max(map(len, c)) for c in zip(*table)]
     tmpl = ' '.join('{:%d}' % w for w in cwidth)
-    print(tmpl.format('id', 'domain', 'server', 'stack'))
+    print(tmpl.format('#', 'id', 'domain', 'server', 'stack', 'public'))
     print(tmpl.format(*('-' * w for w in cwidth)))
     for r in table:
         print(tmpl.format(*r))
@@ -29,7 +35,7 @@ def test_error(appid):
         assert e.code == 500
     else:
         u.close()
-        raise RunimeError('url %r did not raise' % url)
+        raise RuntimeError('url %r did not raise' % raise_url)
 
 
 def main():  # pragma: no cover

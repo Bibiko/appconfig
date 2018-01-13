@@ -95,6 +95,7 @@ class App(argparse.Namespace):
 
     _fields.update({
         'port': int,
+        'public': getboolean,
         'with_blog': getboolean,
         'workers': int,
         'deploy_duration': int,
