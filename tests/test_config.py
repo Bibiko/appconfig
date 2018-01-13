@@ -34,7 +34,7 @@ def test_app():
 
 
 def test_app_fixture(app):
-    assert app.name and app.test and app.production 
+    assert app.name and app.test and app.production
 
 
 def test_app_replace(app):

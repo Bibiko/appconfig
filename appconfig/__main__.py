@@ -10,19 +10,27 @@ from . import APPS
 
 
 def ls():
-    apps = sorted(APPS.values(), key=lambda a: (a.production, a.name))
-    table = [
-        (
-            '{0}'.format(i + 1),
-            a.name, a.domain,
+    table = []
+    for a in APPS.values():
+        table.append((
+            a.name,
+            'http://{0}'.format(a.domain),
             a.production,
             a.stack,
-            '{0}'.format(a.public)) for i, a in enumerate(apps)]
-    cwidth = [max(map(len, c)) for c in zip(*table)]
+            '{0}'.format(a.public)))
+        if a.test:
+            table.append((
+                '{0} [test]'.format(a.name),
+                'http://{0}/{1}'.format(a.test, a.name),
+                a.test,
+                a.stack,
+                '{0}'.format(False)))
+    cwidth = [2] + [max(map(len, c)) for c in zip(*table)]
     tmpl = ' '.join('{:%d}' % w for w in cwidth)
-    print(tmpl.format('#', 'id', 'domain', 'server', 'stack', 'public'))
+    print(tmpl.format('#', 'id', 'url', 'server', 'stack', 'public'))
     print(tmpl.format(*('-' * w for w in cwidth)))
-    for r in table:
+    for i, r in enumerate(sorted(table, key=lambda t: (t[2], t[0]))):
+        r = ['{0}'.format(i + 1)] + list(r)
         print(tmpl.format(*r))
 
 
