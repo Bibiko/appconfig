@@ -1,10 +1,15 @@
 # other.py
 
-from __future__ import unicode_literals
+from __future__ import unicode_literals, print_function
+
+import tempfile
+import os
+import subprocess
 
 from .._compat import pathlib
 
-from fabric.api import sudo, run, cd
+from fabric.api import sudo, run, cd, local, get
+from fabric.contrib.console import confirm
 from fabtools import require, python
 
 from .. import APPS_DIR
@@ -14,8 +19,36 @@ from . import task_app_from_environment
 __all__ = [
     'run_script', 'create_downloads',
     'copy_downloads', 'copy_rdfdump',
-    'pip_freeze',
+    'pip_freeze', 'load_db',
 ]
+
+
+@task_app_from_environment
+def load_db(app, local_name=None):
+    remote_dump = '/tmp/db.sql.gz'
+    sudo(
+        'pg_dump --no-owner --no-acl -Z 9 -f %s %s' % (remote_dump, app.name),
+        user=app.name)
+    local_dump = pathlib.Path(tempfile.mktemp(suffix='.sql.gz', prefix='%s-' % app.name))
+    get(remote_path=remote_dump, local_path=str(local_dump))
+    assert local_dump.exists()
+    sudo('rm %s' % remote_dump, user=app.name)
+    local_dbs = [
+        l.split('|')[0] for l in subprocess.check_output(['psql', '-lAt']).splitlines()]
+    if local_name in local_dbs:
+        if confirm('Drop existing DB {0}?'.format(local_name), default=False):
+            local('dropdb {0}'.format(local_name))
+        else:
+            print('SQL dump downloaded to {0}'.format(local_dump))
+            return
+
+    local('createdb {0}'.format(local_name))
+    res = local('gunzip -c %s | psql -1 -d %s' % (local_dump, local_name), capture=True)
+    if res.return_code != 0:
+        print(res.stdout)
+        print('SQL dump downloaded to {0}'.format(local_dump))
+    else:
+        os.remove(str(local_dump))
 
 
 @task_app_from_environment
