@@ -112,9 +112,7 @@ def uninstall(app):  # pragma: no cover
             files.remove(str(path), recursive=True, use_sudo=True)
 
     if user.exists(app.name):
-        sudo('dropdb %s' % app.name, user=app.name)
-
-    if user.exists(app.name):
+        sudo('dropdb --if-exists %s' % app.name, user='postgres')
         sudo('userdel -rf %s' % app.name)
 
     supervisor.update_config()
