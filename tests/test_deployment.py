@@ -59,7 +59,7 @@ def test_deploy_public(mocker, config, mocked_deployment):
     mocked_deployment.getpass.getpass.assert_called_once_with(prompt=mocker.ANY)
 
 
-def test_deploy(mocked_deployment):
+def test_deploy(mocker, mocked_deployment):
     tasks.deploy('production')
     mocked_deployment.getpass.getpass.assert_has_calls([mocker.call(prompt=mocker.ANY)] * 2)
     assert mocked_deployment.getpass.getpass.call_count == 2
