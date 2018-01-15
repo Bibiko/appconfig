@@ -25,6 +25,7 @@ __all__ = [
 
 @task_app_from_environment
 def load_db(app, local_name=None):
+    local_name = local_name or app.name
     remote_dump = '/tmp/db.sql.gz'
     sudo(
         'pg_dump --no-owner --no-acl -Z 9 -f %s %s' % (remote_dump, app.name),
