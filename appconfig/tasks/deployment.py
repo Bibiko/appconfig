@@ -16,7 +16,7 @@ from fabric.api import env, settings, shell_env, prompt, sudo, run, cd, local
 from fabric.contrib.files import exists, comment
 from fabric.contrib.console import confirm
 from fabtools import (
-    require, files, python, postgres, nginx, system, service, supervisor)
+    require, files, python, postgres, nginx, system, service, supervisor, user)
 
 from .. import PKG_DIR
 from .. import helpers
@@ -106,9 +106,14 @@ def require_supervisor(filepath, app, pause=False):
 @task_app_from_environment
 def uninstall(app):  # pragma: no cover
     """uninstall the app"""
-    for path in (app.supervisor, app.nginx_location, app.nginx_site):
+    for path in (app.supervisor, app.nginx_location, app.nginx_site,
+                 '/usr/venvs/' + app.name):
         if exists(str(path)):
-            files.remove(str(path), use_sudo=True)
+            files.remove(str(path), recursive=True, use_sudo=True)
+
+    if user.exists(app.name):
+        sudo('dropdb --if-exists %s' % app.name, user='postgres')
+        sudo('userdel -rf %s' % app.name)
 
     supervisor.update_config()
     service.reload('nginx')

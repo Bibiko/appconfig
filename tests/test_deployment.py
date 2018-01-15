@@ -2,6 +2,8 @@
 
 from __future__ import unicode_literals
 
+import argparse
+
 import pytest
 
 from appconfig import tasks
@@ -23,38 +25,10 @@ def test_deploy_distrib(mocker):
         tasks.deploy('production')
 
 
-def test_deploy_public(mocker, config):
+@pytest.fixture()
+def mocked_deployment(mocker):
     getpass = mocker.Mock(**{'getpass.return_value': 'password'})
-    mocker.patch.multiple('appconfig.tasks.deployment',
-                          time=mocker.Mock(),
-                          getpass=getpass,
-                          pathlib=mocker.DEFAULT,
-                          prompt=mocker.Mock(return_value='app'),
-                          sudo=mocker.Mock(return_value='/usr/venvs/__init__.py'),
-                          run=mocker.Mock(return_value='{"status": "ok"}'),
-                          cd=mocker.DEFAULT,
-                          local=mocker.Mock(),
-                          exists=mocker.Mock(side_effect=lambda x: x.endswith('alembic.ini')),
-                          comment=mocker.Mock(),
-                          confirm=mocker.Mock(return_value=True),
-                          require=mocker.Mock(),
-                          files=mocker.Mock(),
-                          python=mocker.DEFAULT,
-                          postgres=mocker.Mock(),
-                          nginx=mocker.Mock(),
-                          service=mocker.Mock(),
-                          supervisor=mocker.Mock(),
-                          system=mocker.Mock(**{'distrib_id.return_value': 'Ubuntu',
-                                                'distrib_codename.return_value': 'xenial'}),
-                          )
-    mocker.patch('appconfig.tasks.APP', config['testapppublic'])
-    tasks.deploy('production')
-    assert getpass.getpass.call_count == 1
-
-
-def test_deploy(mocker):
-    getpass = mocker.Mock(**{'getpass.return_value': 'password'})
-    mocker.patch.multiple('appconfig.tasks.deployment',
+    mocked = mocker.patch.multiple('appconfig.tasks.deployment',
         time=mocker.Mock(),
         getpass=getpass,
         pathlib=mocker.DEFAULT,
@@ -76,8 +50,19 @@ def test_deploy(mocker):
         system=mocker.Mock(**{'distrib_id.return_value': 'Ubuntu',
                               'distrib_codename.return_value': 'xenial'}),
     )
+    return argparse.Namespace(getpass=getpass, **mocked)
+
+
+def test_deploy_public(mocker, config, mocked_deployment):
+    mocker.patch('appconfig.tasks.APP', config['testapppublic'])
     tasks.deploy('production')
-    assert getpass.getpass.call_count == 2
+    mocked_deployment.getpass.getpass.assert_called_once_with(prompt=mocker.ANY)
+
+
+def test_deploy(mocker, mocked_deployment):
+    tasks.deploy('production')
+    mocked_deployment.getpass.getpass.assert_has_calls([mocker.call(prompt=mocker.ANY)] * 2)
+    assert mocked_deployment.getpass.getpass.call_count == 2
     tasks.deploy('production', with_alembic=True)
     tasks.deploy('test')
     tasks.deploy('test', with_alembic=True)
