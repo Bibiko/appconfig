@@ -106,14 +106,17 @@ def require_supervisor(filepath, app, pause=False):
 @task_app_from_environment
 def uninstall(app):  # pragma: no cover
     """uninstall the app"""
-    for path in (app.supervisor, app.nginx_location, app.nginx_site,
-                 '/usr/venvs/' + app.name):
+    for path in (app.nginx_location, app.nginx_site, '/usr/venvs/' + app.name):
         if exists(str(path)):
             files.remove(str(path), recursive=True, use_sudo=True)
 
+    stop.execute_inner(app)
     if user.exists(app.name):
         sudo('dropdb --if-exists %s' % app.name, user='postgres')
         sudo('userdel -rf %s' % app.name)
+
+    if exists(str(app.supervisor)):
+        files.remove(str(app.supervisor), recursive=True, use_sudo=True)
 
     supervisor.update_config()
     service.reload('nginx')
