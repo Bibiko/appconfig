@@ -106,7 +106,7 @@ def require_supervisor(filepath, app, pause=False):
 @task_app_from_environment
 def uninstall(app):  # pragma: no cover
     """uninstall the app"""
-    for path in (app.nginx_location, app.nginx_site, '/usr/venvs/' + app.name):
+    for path in (app.nginx_location, app.nginx_site, app.venv_dir):
         if exists(str(path)):
             files.remove(str(path), recursive=True, use_sudo=True)
 
