@@ -35,6 +35,7 @@ class Config(dict):
         items = {s: value_cls(**parser[s]) for s in parser.sections()
                 if not s.startswith('_')}
         inst = cls(items)
+        inst.hostnames = [h for _, h in parser.raw_items('_hosts')]
         if validate:
             inst.validate()
         return inst
@@ -75,6 +76,10 @@ class ConfigParser(configparser.ConfigParser):
         for k, v in iteritems(self._init_defaults):
             kwargs.setdefault(k, v)
         super(ConfigParser, self).__init__(defaults, **kwargs)
+
+    def raw_items(self, section):
+        defaults = set(self.defaults())
+        return [(k, v) for k, v in self.items(section, raw=True) if k not in defaults]
 
 
 def getboolean(s):

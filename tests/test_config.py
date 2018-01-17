@@ -17,6 +17,10 @@ def test_config_validate():
         }).validate()
 
 
+def test_config_hostnames(config):
+    assert config.hostnames == ['vbox', 'spam.eggs']
+
+
 def test_app():
     app = config.App(**{k: '1' for k in config.App._fields})
 
