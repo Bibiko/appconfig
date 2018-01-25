@@ -1,4 +1,4 @@
-from fabric.api import cd, sudo
+from fabric.api import cd, sudo, local
 from fabric.contrib import console
 from fabtools import require
 
@@ -17,3 +17,24 @@ def load_sqldump(app, url=DUMP_URL, md5=DUMP_MD5):
         with cd('/tmp'):
             require.file(filename, url=url, md5=md5)
             sudo('gunzip -c %s | psql %s' % (filename, app.name), user=app.name)
+
+
+@task_app_from_environment('production')
+def copy_archive(app):
+    raise NotImplementedError
+    arc = 'archive.tgz'
+    local('tar -czf {0} archive'.format(arc))
+    with cd('/tmp'):
+        require.file(arc, source=arc)
+        sudo('tar -xzf {0}'.format(arc))
+        sudo('rm {0}/*'.format(app.files))
+        sudo('mv archive/* {0}'.format(app.files))
+        sudo('rm {0}'.format(arc))
+    local('rm {0}'.format(arc))
+
+
+@task_app_from_environment('production')
+def fetch_downloads(app):
+    sudo('{0}/python {1}/src/glottolog3/glottolog3/scripts/fetch_downloads.py'.format(
+        app.venv_bin, app.venv_dir))
+
