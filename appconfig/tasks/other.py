@@ -25,6 +25,7 @@ __all__ = [
 
 @task_app_from_environment
 def load_db(app, local_name=None):
+    """Dump remote app DB and try loading the dump into a local database."""
     local_name = local_name or app.name
     remote_dump = '/tmp/db.sql.gz'
     sudo(
@@ -34,14 +35,18 @@ def load_db(app, local_name=None):
     get(remote_path=remote_dump, local_path=str(local_dump))
     assert local_dump.exists()
     sudo('rm %s' % remote_dump, user=app.name)
-    local_dbs = [
-        l.split('|')[0] for l in subprocess.check_output(['psql', '-lAt']).splitlines()]
-    if local_name in local_dbs:
-        if confirm('Drop existing DB {0}?'.format(local_name), default=False):
-            local('dropdb {0}'.format(local_name))
-        else:
-            print('SQL dump downloaded to {0}'.format(local_dump))
-            return
+    try:
+        local_dbs = [
+            l.split('|')[0] for l in subprocess.check_output(['psql', '-lAt']).splitlines()]
+        if local_name in local_dbs:
+            if confirm('Drop existing DB {0}?'.format(local_name), default=False):
+                local('dropdb {0}'.format(local_name))
+            else:
+                print('SQL dump downloaded to {0}'.format(local_dump))
+                return
+    except FileNotFoundError:  # No PostgreSQL available?
+        print('SQL dump downloaded to {0}'.format(local_dump))
+        return
 
     local('createdb {0}'.format(local_name))
     res = local('gunzip -c %s | psql -1 -d %s' % (local_dump, local_name), capture=True)
