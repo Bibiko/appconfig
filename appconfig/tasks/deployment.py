@@ -134,6 +134,8 @@ def deploy(app, with_blog=None, with_alembic=False):
                          app.require_deb)
 
     require.users.user(app.name, create_home=True, shell='/bin/bash')
+    require.directory(str(app.www_dir), use_sudo=True)
+    require.directory(str(app.www_dir / 'files'), use_sudo=True)
 
     require_bibutils()
 
