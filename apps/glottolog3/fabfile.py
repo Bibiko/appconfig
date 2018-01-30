@@ -20,21 +20,19 @@ def load_sqldump(app, url=DUMP_URL, md5=DUMP_MD5):
 
 
 @task_app_from_environment('production')
-def copy_archive(app):
-    raise NotImplementedError
+def copy_archive(app, archive):
     arc = 'archive.tgz'
-    local('tar -czf {0} archive'.format(arc))
     with cd('/tmp'):
-        require.file(arc, source=arc)
+        require.file(arc, source=archive)
         sudo('tar -xzf {0}'.format(arc))
-        sudo('rm {0}/*'.format(app.files))
-        sudo('mv archive/* {0}'.format(app.files))
+        sudo('rm -rf {0}/files/*'.format(app.www_dir))
+        sudo('mv archive/* {0}/files'.format(app.www_dir))
         sudo('rm {0}'.format(arc))
-    local('rm {0}'.format(arc))
 
 
 @task_app_from_environment('production')
 def fetch_downloads(app):
+    sudo('mkdir -p {0}/src/glottolog3/glottolog3/static/download'.format(app.venv_dir))
     sudo('{0}/python {1}/src/glottolog3/glottolog3/scripts/fetch_downloads.py'.format(
         app.venv_bin, app.venv_dir))
 
