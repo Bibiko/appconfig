@@ -37,7 +37,7 @@ def load_db(app, local_name=None):
     sudo('rm %s' % remote_dump, user=app.name)
     try:
         local_dbs = [
-            l.split('|')[0] for l in subprocess.check_output(['psql', '-lAt']).splitlines()]
+            l.split(b'|')[0] for l in subprocess.check_output(['psql', '-lAt']).splitlines()]
         if local_name in local_dbs:
             if confirm('Drop existing DB {0}?'.format(local_name), default=False):
                 local('dropdb {0}'.format(local_name))
