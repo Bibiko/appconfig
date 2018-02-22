@@ -10,6 +10,11 @@ from . import APPS
 
 
 def ls(args):
+    """
+    List registered apps.
+
+    -p to sort by port
+    """
     table = []
     for a in APPS.values():
         table.append((
