@@ -289,7 +289,7 @@ def get_clld_dir(venv_dir):
     # /usr/venvs/<app_name>/local/lib/python<version>/site-packages/clld/__init__.pyc
     with python.virtualenv(str(venv_dir)):
         stdout = sudo('python -c "import clld; print(clld.__file__)"')
-    clld_path = pathlib.PurePosixPath(stdout)
+    clld_path = pathlib.PurePosixPath(stdout.split()[-1])
     return clld_path.parent
 
 
