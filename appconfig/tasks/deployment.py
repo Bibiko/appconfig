@@ -27,7 +27,7 @@ __all__ = ['deploy', 'start', 'stop', 'uninstall']
 
 PLATFORM = platform.system().lower()
 
-VBOX_HOSTNAMES = {'vbox', 'precise', 'trusty', 'xenial'}  # run on localhost
+VBOX_HOSTNAMES = {'vbox', 'xenial'}  # run on localhost
 
 PG_COLLKEY_DIR = PKG_DIR / 'pg_collkey-v0.5'
 
@@ -127,7 +127,7 @@ def deploy(app, with_blog=None, with_alembic=False):
     """deploy the app"""
     assert system.distrib_id() == 'Ubuntu'
     lsb_codename = system.distrib_codename()
-    if lsb_codename not in ('precise', 'trusty', 'xenial'):
+    if lsb_codename != 'xenial':
         raise ValueError('unsupported platform: %s' % lsb_codename)
 
     require.deb.packages(getattr(app, 'require_deb_%s' % lsb_codename) +
@@ -150,8 +150,7 @@ def deploy(app, with_blog=None, with_alembic=False):
 
     require_config(app.config, app, ctx)
 
-    venv_python = 'python2' if lsb_codename == 'precise' else 'python3'
-    require_venv(app.venv_dir, venv_python=venv_python,
+    require_venv(app.venv_dir, venv_python='python3',
                  require_packages=[app.app_pkg] + app.require_pip,
                  assets_name=app.name)
 
@@ -247,7 +246,7 @@ def require_venv(directory, venv_python, require_packages, assets_name):
     require.directory(str(directory), use_sudo=True)
 
     with settings(sudo_prefix=env.sudo_prefix + ' -H'):  # set HOME for pip log/cache
-        require.python.virtualenv(str(directory), venv_python=venv_python, use_sudo=True)
+        require.python.virtualenv(str(directory), venv_python='python3', use_sudo=True)
 
         with python.virtualenv(str(directory)):
             require.python.packages(require_packages, use_sudo=True)

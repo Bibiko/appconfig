@@ -8,7 +8,6 @@ import pytest
 
 from appconfig import tasks
 
-
 pytestmark = pytest.mark.usefixtures('APP')
 
 
