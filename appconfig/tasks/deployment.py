@@ -74,7 +74,7 @@ def sudo_upload_template(template, dest, context=None,
         else:
             context = context.copy()
             context.update(kwargs)
-    files.upload_template(template, dest, context, use_jinja=False,
+    files.upload_template(template, dest, context, use_jinja=True,
                           template_dir=str(TEMPLATE_DIR), use_sudo=True,
                           backup=False, mode=mode, chown=True, user=user_own)
 
