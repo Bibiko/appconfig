@@ -57,16 +57,26 @@ def template_context(app, workers=3, with_blog=False,):
     return ctx
 
 
-def sudo_upload_template(template, dest, context=None, mode=None, **kwargs):
+def sudo_upload_template(template, dest, context=None,
+                         mode=None, user_own=None, **kwargs):
+    """
+    A wrapper around upload_template in fabtools. Used to upload template files.
+
+    :param user_own: Set to user name that's supposed to own the file.
+        If it is None, the uploading user's rights are used.
+    :type user_own: str
+
+    :return: None
+    """
     if kwargs:
         if context is None:
             context = kwargs
         else:
             context = context.copy()
             context.update(kwargs)
-    files.upload_template(template, dest, context, use_jinja=True,
+    files.upload_template(template, dest, context, use_jinja=False,
                           template_dir=str(TEMPLATE_DIR), use_sudo=True,
-                          backup=False, mode=mode, chown=True)
+                          backup=False, mode=mode, chown=True, user=user_own)
 
 
 @task_app_from_environment
