@@ -44,9 +44,16 @@ def munin_host():
     # TODO: Check permissions of file.
     sudo_upload_template('apache24.conf', '/etc/munin/apache24.conf')
 
+    # Prepare HTTP monitor:
+    sudo_upload_template('http-monitor',
+                         '/usr/share/munin/plugins/http-monitor')
+    sudo('ln -s /usr/share/munin/plugins/http-monitor' +
+         ' /etc/munin/plugins/http-monitor')
+
     # Set URLs for HTTP monitoring:
     sudo('touch /etc/munin/plugin-conf.d/zcustom')
-    files.append('/etc/munin/plugin-conf.d/zcustom', app_watchlist, use_sudo=True)
+    files.append('/etc/munin/plugin-conf.d/zcustom', app_watchlist,
+                 use_sudo=True)
 
     for s in ['munin-node', 'apache2']:
         service.restart(s)
