@@ -14,6 +14,5 @@ def munin_node():
         'dlce-munin-node',
         shell='/bin/bash',
         system=True,
-        ssh_public_keys=[os.path.join(os.path.dirname(__file__),
-                                      'ssh_key_munin_node.pub')])
+        ssh_public_keys=[key_path])
     service.restart('munin-node')
