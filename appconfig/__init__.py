@@ -1,8 +1,6 @@
 # appconfig - remote control for DLCE apps
 
-from __future__ import unicode_literals
-
-from ._compat import pathlib
+import pathlib
 
 from . import config
 

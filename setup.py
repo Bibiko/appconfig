@@ -14,15 +14,13 @@ setup(
     url='https://github.com/shh-dlce/appconfig',
     packages=find_packages(),
     platforms='any',
-    python_requires='>=2.7,!=3.0.*,!=3.1.*,!=3.2.*,!=3.3.*',
+    python_requires='!=3.0.*,!=3.1.*,!=3.2.*,!=3.3.*,!=3.4.*',
     include_package_data=True,
     zip_safe=False,
     install_requires=[
-        'configparser; python_version < "3"',
         'Fabric3>=1.11',
         'fabtools-python>=0.19.7',
         'Jinja2',
-        'pathlib2; python_version < "3.5"',
         'pytz',
     ],
     extras_require={
@@ -37,10 +35,7 @@ setup(
     long_description='',
     classifiers=[
         'Private :: Do Not Upload',
-        'Programming Language :: Python :: 2',
-        'Programming Language :: Python :: 2.7',
         'Programming Language :: Python :: 3',
-        'Programming Language :: Python :: 3.4',
         'Programming Language :: Python :: 3.5',
         'Programming Language :: Python :: 3.6',
     ],

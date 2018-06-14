@@ -1,7 +1,5 @@
 # varnish.py - install, configure, and run varnish cache
 
-from __future__ import unicode_literals
-
 from fabric.api import settings, run
 from fabtools import require, files, service
 

@@ -1,12 +1,9 @@
 # other.py
 
-from __future__ import unicode_literals, print_function
-
 import tempfile
 import os
 import subprocess
-
-from .._compat import pathlib
+import pathlib
 
 from fabric.api import sudo, run, cd, local, get
 from fabric.contrib.console import confirm
