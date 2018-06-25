@@ -19,6 +19,7 @@ def add_key(user='', key=''):
 
         if not fabuser.exists(user):
             fabuser.create(user, password='changeme')
+            fabuser.modify(user, group='sudo')
 
         try:
             fabuser.modify(user, ssh_public_keys=key_path)
