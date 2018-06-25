@@ -9,16 +9,11 @@
     - ssh config
     - environment variables
 """
-
-from __future__ import unicode_literals
-
-import io
 import copy
 import argparse
 import warnings
 import configparser
-
-from ._compat import pathlib, iteritems, itervalues
+import pathlib
 
 from . import helpers
 
@@ -41,15 +36,13 @@ class Config(dict):
         return inst
 
     def validate(self):
-        mismatch = [(name, app.name) for name, app in iteritems(self)
-                    if name != app.name]
+        mismatch = [(name, app.name) for name, app in self.items() if name != app.name]
         if mismatch:
             raise ValueError('section/name mismatch: %r' % mismatch)
-        ports = [app.port for app in itervalues(self)]
-        duplicates = helpers.duplicates(ports)
+        duplicates = helpers.duplicates([app.port for app in self.values()])
         if duplicates:
             raise ValueError('duplicate port(s): %r' % duplicates)
-        for app in itervalues(self):
+        for app in self.values():
             if not app.fabfile_dir.exists():
                 warnings.warn('missing fabfile dir: %s' % app.name)
 
@@ -73,7 +66,7 @@ class ConfigParser(configparser.ConfigParser):
         return self
 
     def __init__(self, defaults=None, **kwargs):
-        for k, v in iteritems(self._init_defaults):
+        for k, v in self._init_defaults.items():
             kwargs.setdefault(k, v)
         super(ConfigParser, self).__init__(defaults, **kwargs)
 
@@ -113,6 +106,7 @@ class App(argparse.Namespace):
 
     _fields.update(dict.fromkeys([
         'home_dir', 'www_dir',
+        'github_org',
         'config',
         'gunicorn_pid',
         'venv_dir', 'venv_bin', 'src_dir', 'download_dir',

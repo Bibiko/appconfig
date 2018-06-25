@@ -25,7 +25,7 @@ def caller_dirname(steps=1):
 
 
 def duplicates(iterable):
-    """Return duplicated (hashable) items from iterable preservig order.
+    """Return duplicated (hashable) items from iterable preserving order.
 
     >>> duplicates(iter([1, 2, 2, 3, 1]))
     [2, 1]

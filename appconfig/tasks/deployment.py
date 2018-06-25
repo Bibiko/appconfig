@@ -1,7 +1,5 @@
 # deployment.py
 
-from __future__ import unicode_literals
-
 import os
 import json
 import time
@@ -9,8 +7,7 @@ import getpass
 import platform
 import tempfile
 import functools
-
-from .._compat import pathlib, iteritems
+import pathlib
 
 from fabric.api import env, settings, shell_env, prompt, sudo, run, cd, local
 from fabric.contrib.files import exists, comment
@@ -314,7 +311,7 @@ def http_auth(htpasswd_file, username, public=False):
             prompt='HTTP Basic Auth password for user admin: ')
 
     require.directory(str(htpasswd_file.parent), use_sudo=True)
-    pairs = [(u, p) for u, p in iteritems(pwds) if p]
+    pairs = [(u, p) for u, p in pwds.items() if p]
     for opts, pairs in [('-bdc', pairs[:1]), ('-bd', pairs[1:])]:
         for u, p in pairs:
             sudo('htpasswd %s %s %s %s' % (opts, htpasswd_file, u, p))
@@ -333,6 +330,7 @@ def upload_local_sqldump(app, ctx, lsb_codename):
 
     db_user = '-U postgres ' if PLATFORM == 'windows' else ''
     local('pg_dump %s--no-owner --no-acl -Z 9 -f %s %s' % (db_user, sqldump, db_name))
+    sudo('vacuumdb -zf %s' % app.name, user='postgres')
 
     require.file(str(target), source=str(sqldump))
     sqldump.unlink()

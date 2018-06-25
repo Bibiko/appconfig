@@ -11,11 +11,7 @@ To connect tasks to a certain app, the app's fabfile needs to import this module
 and run the init function, passing an app name defined in the global clld app config.
 """
 
-from __future__ import unicode_literals
-
 import functools
-
-from .._compat import PY2
 
 import fabric.api
 
@@ -68,6 +64,3 @@ from .varnish import *
 from .other import *
 
 __all__ += deployment.__all__ + varnish.__all__+ other.__all__
-
-if PY2:  # pragma: no cover
-    __all__ = map(str, __all__)  # https://bugs.python.org/issue21720

@@ -1,10 +1,7 @@
 # __main__.py - command line interface
 
-from __future__ import unicode_literals, print_function
-
 import argparse
-
-from ._compat import urlopen, HTTPError
+from urllib.request import urlopen, HTTPError
 
 from . import APPS
 
