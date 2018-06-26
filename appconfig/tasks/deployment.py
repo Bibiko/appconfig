@@ -144,26 +144,13 @@ def deploy(app, with_blog=None, with_alembic=False):
     require.directory(str(app.www_dir), use_sudo=True)
     require.directory(str(app.www_dir / 'files'), use_sudo=True)
 
-    require_bibutils()
-
-    require_postgres(app.name,
-                     user_name=app.name, user_password=app.name,
-                     pg_unaccent=app.pg_unaccent, pg_collkey=app.pg_collkey,
-                     lsb_codename=lsb_codename)
+    require_logging(app.log_dir,
+                    logrotate=app.logrotate,
+                    access_log=app.access_log, error_log=app.error_log)
 
     workers = 3 if app.workers > 3 and env.environment == 'test' else app.workers
     with_blog = with_blog if with_blog is not None else app.with_blog
     ctx = template_context(app, workers=workers, with_blog=with_blog)
-
-    require_config(app.config, app, ctx)
-
-    require_venv(app.venv_dir, venv_python='python3',
-                 require_packages=[app.app_pkg] + app.require_pip,
-                 assets_name=app.name)
-
-    require_logging(app.log_dir,
-                    logrotate=app.logrotate,
-                    access_log=app.access_log, error_log=app.error_log)
 
     require_nginx(ctx,
                   default_site=app.nginx_default_site,
@@ -174,6 +161,23 @@ def deploy(app, with_blog=None, with_alembic=False):
                   htpasswd_file=app.nginx_htpasswd,
                   htpasswd_user=app.name,
                   public=app.public)
+
+    if app.stack == 'soundcomparisons':
+        service.reload('nginx')
+        return
+
+    require_bibutils()
+
+    require_postgres(app.name,
+                     user_name=app.name, user_password=app.name,
+                     pg_unaccent=app.pg_unaccent, pg_collkey=app.pg_collkey,
+                     lsb_codename=lsb_codename)
+
+    require_config(app.config, app, ctx)
+
+    require_venv(app.venv_dir, venv_python='python3',
+                 require_packages=[app.app_pkg] + app.require_pip,
+                 assets_name=app.name)
 
     # if gunicorn runs, make it gracefully reload the app by sending HUP
     # TODO: consider 'supervisorctl signal HUP $name' instead (xenial+)
