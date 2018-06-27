@@ -334,7 +334,6 @@ def upload_local_sqldump(app, ctx, lsb_codename):
 
     db_user = '-U postgres ' if PLATFORM == 'windows' else ''
     local('pg_dump %s--no-owner --no-acl -Z 9 -f %s %s' % (db_user, sqldump, db_name))
-    sudo('vacuumdb -zf %s' % app.name, user='postgres')
 
     require.file(str(target), source=str(sqldump))
     sqldump.unlink()
@@ -347,6 +346,7 @@ def upload_local_sqldump(app, ctx, lsb_codename):
                          lsb_codename=lsb_codename, drop=True)
 
     sudo('gunzip -c %s | psql -d %s' % (target, app.name), user=app.name)
+    sudo('vacuumdb -zf %s' % app.name, user='postgres')
     files.remove(str(target))
 
 
