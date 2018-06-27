@@ -152,6 +152,12 @@ def deploy(app, with_blog=None, with_alembic=False):
     with_blog = with_blog if with_blog is not None else app.with_blog
     ctx = template_context(app, workers=workers, with_blog=with_blog)
 
+    if app.stack == 'clld':
+        require_venv(
+            app.venv_dir, venv_python='python3',
+            require_packages=[app.app_pkg] + app.require_pip,
+            assets_name=app.name)
+
     require_nginx(ctx,
                   default_site=app.nginx_default_site,
                   site=app.nginx_site,
@@ -160,9 +166,13 @@ def deploy(app, with_blog=None, with_alembic=False):
                   venv_dir=app.venv_dir,
                   htpasswd_file=app.nginx_htpasswd,
                   htpasswd_user=app.name,
+                  with_clld=app.stack == 'clld',
                   public=app.public)
 
     if app.stack == 'soundcomparisons':
+        #
+        # service php-fpm restart (or similar)
+        #
         service.reload('nginx')
         return
 
@@ -174,10 +184,6 @@ def deploy(app, with_blog=None, with_alembic=False):
                      lsb_codename=lsb_codename)
 
     require_config(app.config, app, ctx)
-
-    require_venv(app.venv_dir, venv_python='python3',
-                 require_packages=[app.app_pkg] + app.require_pip,
-                 assets_name=app.name)
 
     # if gunicorn runs, make it gracefully reload the app by sending HUP
     # TODO: consider 'supervisorctl signal HUP $name' instead (xenial+)
@@ -273,16 +279,20 @@ def require_logging(log_dir, logrotate, access_log, error_log):
 
 
 def require_nginx(ctx, default_site, site, location, logrotate, venv_dir,
-                  htpasswd_file, htpasswd_user, public=False):
+                  htpasswd_file, htpasswd_user, with_clld=False, public=False):
     with shell_env(SYSTEMD_PAGER=''):
         require.nginx.server()
 
     auth, admin_auth = http_auth(htpasswd_file, username=htpasswd_user, public=public)
 
     # TODO: consider require.nginx.site
-    upload_app = functools.partial(sudo_upload_template, 'nginx-app.conf',
-                                   context=ctx, clld_dir=get_clld_dir(venv_dir),
-                                   auth=auth, admin_auth=admin_auth)
+    upload_app = functools.partial(
+        sudo_upload_template, 
+        'nginx-app.conf',
+        context=ctx,
+        clld_dir=get_clld_dir(venv_dir) if with_clld else '',
+        auth=auth,
+        admin_auth=admin_auth)
 
     if ctx['SITE']:
         upload_app(dest=str(site))
