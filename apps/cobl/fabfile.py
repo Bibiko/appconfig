@@ -10,7 +10,7 @@ init()
 
 @task_app_from_environment
 def shutdown(app):
-    #stop.execute_inner(app, maintenance_hours=None)
+    stop.execute_inner(app, maintenance_hours=None)
     sql_dump = dump_db(app)
     cdstar.add_bitstream(app.dbdump, sql_dump)
     sql_dump.unlink()
