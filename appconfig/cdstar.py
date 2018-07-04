@@ -3,7 +3,7 @@ import os
 from pycdstar.api import Cdstar
 from cdstarcat.resources import RollingBlob
 
-SERVICE_URL = os.environ['CDSTAR_URL']
+SERVICE_URL = os.environ.get('CDSTAR_URL')
 
 
 class NamedBitstream(object):
