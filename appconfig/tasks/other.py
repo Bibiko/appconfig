@@ -16,22 +16,27 @@ from . import task_app_from_environment
 __all__ = [
     'run_script', 'create_downloads',
     'copy_downloads', 'copy_rdfdump',
-    'pip_freeze', 'load_db',
+    'pip_freeze', 'load_db', 'dump_db',
 ]
+
+
+def dump_db(app):
+    remote_dump = '/tmp/db.sql'
+    sudo('pg_dump --no-owner --no-acl -f %s %s' % (remote_dump, app.name), user=app.name)
+    sudo('gzip -f {0}'.format(remote_dump), user=app.name)
+    remote_dump += '.gz'
+    local_dump = pathlib.Path(tempfile.mktemp(suffix='.sql.gz', prefix='%s-' % app.name))
+    get(remote_path=remote_dump, local_path=str(local_dump))
+    sudo('rm %s' % remote_dump, user=app.name)
+    return local_dump
 
 
 @task_app_from_environment
 def load_db(app, local_name=None):
     """Dump remote app DB and try loading the dump into a local database."""
     local_name = local_name or app.name
-    remote_dump = '/tmp/db.sql.gz'
-    sudo(
-        'pg_dump --no-owner --no-acl -Z 9 -f %s %s' % (remote_dump, app.name),
-        user=app.name)
-    local_dump = pathlib.Path(tempfile.mktemp(suffix='.sql.gz', prefix='%s-' % app.name))
-    get(remote_path=remote_dump, local_path=str(local_dump))
+    local_dump = dump_db(app)
     assert local_dump.exists()
-    sudo('rm %s' % remote_dump, user=app.name)
     try:
         local_dbs = [
             l.split(b'|')[0] for l in subprocess.check_output(['psql', '-lAt']).splitlines()]

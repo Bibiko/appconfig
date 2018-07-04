@@ -22,6 +22,8 @@ setup(
         'fabtools-python>=0.19.7',
         'Jinja2',
         'pytz',
+        'pycdstar>=0.4',
+        'cdstarcat>=0.5',
     ],
     extras_require={
         'dev': ['flake8'],

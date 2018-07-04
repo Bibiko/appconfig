@@ -1,0 +1,2 @@
+#!/bin/sh
+{{ app.venv_bin }}/python {{ app.src_dir }}/manage.py {{ app.config }} computeNexusExport

@@ -89,6 +89,8 @@ class App(argparse.Namespace):
         'name', 'test', 'production',
         'domain', 'error_email', 'stack',
         'sqlalchemy_url', 'app_pkg', 'dbdump',
+        'github_org',
+        'github_repos',
     ])
 
     _fields.update({
@@ -106,10 +108,9 @@ class App(argparse.Namespace):
 
     _fields.update(dict.fromkeys([
         'home_dir', 'www_dir',
-        'github_org',
         'config',
         'gunicorn_pid',
-        'venv_dir', 'venv_bin', 'src_dir', 'download_dir',
+        'venv_dir', 'venv_bin', 'src_dir', 'static_dir', 'download_dir',
         'alembic', 'gunicorn',
         'log_dir', 'access_log', 'error_log',
         'logrotate',

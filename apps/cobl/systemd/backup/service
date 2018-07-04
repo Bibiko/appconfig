@@ -1,0 +1,11 @@
+[Unit]
+Description=Execute cobl backup script.
+Requires=postgresql.service
+
+[Service]
+User={{ app.name }}
+Group={{ app.name }}
+ExecStart={{ script_path }}
+
+[Install]
+WantedBy=multi-user.target

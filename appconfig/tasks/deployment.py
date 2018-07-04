@@ -7,6 +7,7 @@ import getpass
 import platform
 import tempfile
 import functools
+import random
 import pathlib
 
 from fabric.api import env, settings, shell_env, prompt, sudo, run, cd, local
@@ -17,17 +18,16 @@ from fabtools import (
 
 from .. import PKG_DIR
 from .. import helpers
+from .. import cdstar
+from .. import systemd
 
 from . import task_app_from_environment
 
-__all__ = ['deploy', 'start', 'stop', 'uninstall']
+__all__ = ['deploy', 'start', 'stop', 'uninstall', 'sudo_upload_template']
 
 PLATFORM = platform.system().lower()
-
 VBOX_HOSTNAMES = {'vbox', 'xenial'}  # run on localhost
-
 PG_COLLKEY_DIR = PKG_DIR / 'pg_collkey-v0.5'
-
 TEMPLATE_DIR = PKG_DIR / 'templates'
 
 
@@ -54,8 +54,12 @@ def template_context(app, workers=3, with_blog=False,):
     return ctx
 
 
-def sudo_upload_template(template, dest, context=None,
-                         mode=None, user_own=None, **kwargs):
+def sudo_upload_template(template,
+                         dest,
+                         context=None,
+                         mode=None,
+                         user_own=None,
+                         **kwargs):
     """
     A wrapper around upload_template in fabtools. Used to upload template files.
 
@@ -66,14 +70,19 @@ def sudo_upload_template(template, dest, context=None,
     :return: None
     """
     if kwargs:
-        if context is None:
-            context = kwargs
-        else:
-            context = context.copy()
-            context.update(kwargs)
-    files.upload_template(template, dest, context, use_jinja=True,
-                          template_dir=str(TEMPLATE_DIR), use_sudo=True,
-                          backup=False, mode=mode, chown=True, user=user_own)
+        context = (context or {}).copy()
+        context.update(kwargs)
+    files.upload_template(
+        template,
+        dest,
+        context,
+        use_jinja=True,
+        template_dir=str(TEMPLATE_DIR),
+        use_sudo=True,
+        backup=False,
+        mode=mode,
+        chown=True,
+        user=user_own)
 
 
 @task_app_from_environment
@@ -104,10 +113,7 @@ def stop(app, maintenance_hours=1):
 
 def require_supervisor(filepath, app, pause=False):
     # TODO: consider require.supervisor.process
-    sudo_upload_template('supervisor.conf', dest=str(filepath), mode='644',
-                         name=app.name, gunicorn=app.gunicorn, config=app.config,
-                         user=app.name, group=app.name, pid_file=app.gunicorn_pid,
-                         error_log=app.error_log, PAUSE=pause)
+    sudo_upload_template('supervisor.conf', dest=str(filepath), mode='644', PAUSE=pause, app=app)
 
 
 @task_app_from_environment
@@ -137,13 +143,10 @@ def deploy(app, with_blog=None, with_alembic=False):
     if lsb_codename != 'xenial':
         raise ValueError('unsupported platform: %s' % lsb_codename)
 
-    require.deb.packages(getattr(app, 'require_deb_%s' % lsb_codename) +
-                         app.require_deb)
-
+    require.deb.packages(getattr(app, 'require_deb_%s' % lsb_codename) + app.require_deb)
     require.users.user(app.name, create_home=True, shell='/bin/bash')
     require.directory(str(app.www_dir), use_sudo=True)
     require.directory(str(app.www_dir / 'files'), use_sudo=True)
-
     require_logging(app.log_dir,
                     logrotate=app.logrotate,
                     access_log=app.access_log, error_log=app.error_log)
@@ -152,23 +155,6 @@ def deploy(app, with_blog=None, with_alembic=False):
     with_blog = with_blog if with_blog is not None else app.with_blog
     ctx = template_context(app, workers=workers, with_blog=with_blog)
 
-    if app.stack == 'clld':
-        require_venv(
-            app.venv_dir, venv_python='python3',
-            require_packages=[app.app_pkg] + app.require_pip,
-            assets_name=app.name)
-
-    require_nginx(ctx,
-                  default_site=app.nginx_default_site,
-                  site=app.nginx_site,
-                  location=app.nginx_location,
-                  logrotate=app.logrotate,
-                  venv_dir=app.venv_dir,
-                  htpasswd_file=app.nginx_htpasswd,
-                  htpasswd_user=app.name,
-                  with_clld=app.stack == 'clld',
-                  public=app.public)
-
     if app.stack == 'soundcomparisons':
         #
         # service php-fpm restart (or similar)
@@ -176,12 +162,39 @@ def deploy(app, with_blog=None, with_alembic=False):
         service.reload('nginx')
         return
 
-    require_bibutils()
+    #
+    # Create a virtualenv for the app and install the app package in development mode, i.e. with
+    # repository working copy in /usr/venvs/<APP>/src
+    #
+    require_venv(
+        app.venv_dir,
+        require_packages=[app.app_pkg] + app.require_pip,
+        assets_name=app.name if app.stack == 'clld' else None)
 
-    require_postgres(app.name,
-                     user_name=app.name, user_password=app.name,
-                     pg_unaccent=app.pg_unaccent, pg_collkey=app.pg_collkey,
-                     lsb_codename=lsb_codename)
+    #
+    # If some of the static assets are managed via bower, update them.
+    #
+    if exists(str(app.static_dir / 'bower.json')):
+        sudo('npm install -g bower')
+        with cd(str(app.static_dir)):
+            sudo('bower --allow-root install')
+
+    require_nginx(
+        ctx,
+        default_site=app.nginx_default_site,
+        site=app.nginx_site,
+        location=app.nginx_location,
+        logrotate=app.logrotate,
+        venv_dir=app.venv_dir,
+        htpasswd_file=app.nginx_htpasswd,
+        htpasswd_user=app.name,
+        with_clld=app.stack == 'clld',
+        public=app.public)
+
+    if app.stack == 'clld':
+        require_bibutils()
+
+    require_postgres(app)
 
     require_config(app.config, app, ctx)
 
@@ -192,7 +205,7 @@ def deploy(app, with_blog=None, with_alembic=False):
 
     if not with_alembic and confirm('Recreate database?', default=False):
         stop.execute_inner(app)
-        upload_local_sqldump(app, ctx, lsb_codename)
+        upload_sqldump(app)
     elif exists(str(app.src_dir / 'alembic.ini')) and confirm('Upgrade database?', default=False):
         # Note: stopping the app is not strictly necessary, because
         #       the alembic revisions run in separate transactions!
@@ -204,6 +217,7 @@ def deploy(app, with_blog=None, with_alembic=False):
     time.sleep(5)
     res = run('curl http://localhost:%s/_ping' % app.port)
     assert json.loads(res)['status'] == 'ok'
+    systemd.enable(app, pathlib.Path(os.getcwd()) / 'systemd')
 
 
 def require_bibutils(executable='/usr/local/bin/bib2xml',
@@ -221,22 +235,21 @@ def require_bibutils(executable='/usr/local/bin/bib2xml',
                 sudo('make install')
 
 
-def require_postgres(database_name, user_name, user_password, pg_unaccent, pg_collkey,
-                     lsb_codename, drop=False):
+def require_postgres(app, drop=False):
     if drop:
         with cd('/var/lib/postgresql'):
-            sudo('dropdb %s' % database_name, user='postgres')
+            sudo('dropdb %s' % app.name, user='postgres')
 
     with shell_env(SYSTEMD_PAGER=''):
         require.postgres.server()
-        require.postgres.user(user_name, password=user_password)
-        require.postgres.database(database_name, owner=user_name)
+        require.postgres.user(app.name, password=app.name)
+        require.postgres.database(app.name, owner=app.name)
 
-    if pg_unaccent:
+    if app.pg_unaccent:
         sql = 'CREATE EXTENSION IF NOT EXISTS unaccent WITH SCHEMA public;'
-        sudo('psql -c "%s" -d %s' % (sql, database_name), user='postgres')
+        sudo('psql -c "%s" -d %s' % (sql, app.name), user='postgres')
 
-    if pg_collkey:
+    if app.pg_collkey:
         pg_dir, = run('find /usr/lib/postgresql/ -mindepth 1 -maxdepth 1 -type d').splitlines()
         pg_version = pathlib.PurePosixPath(pg_dir).name
         if not exists('/usr/lib/postgresql/%s/lib/collkey_icu.so' % pg_version):
@@ -248,7 +261,7 @@ def require_postgres(database_name, user_name, user_password, pg_unaccent, pg_co
                 sudo('make install')
         with cd('/tmp'):
             require.file('collkey_icu.sql', source=str(PG_COLLKEY_DIR / 'collkey_icu.sql'))
-            sudo('psql -f collkey_icu.sql -d %s' % database_name, user='postgres')
+            sudo('psql -f collkey_icu.sql -d %s' % app.name, user='postgres')
 
 
 def require_config(filepath, app, ctx):
@@ -258,16 +271,26 @@ def require_config(filepath, app, ctx):
     files = files_dir if exists(str(files_dir)) else None
     sudo_upload_template('config.ini', dest=str(filepath), context=ctx, files=files)
 
+    if app.stack == 'django' and confirm('Recreate secret key?', default=True):
+        key_chars = "abcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*(-_=+)"
+        secret_key = "".join([random.choice(key_chars) for i in range(50)])
+        require.file(
+            str(filepath.parent / 'secret_key'), contents=secret_key, use_sudo=True, mode='644')
 
-def require_venv(directory, venv_python, require_packages, assets_name):
+
+def require_venv(directory, require_packages=None, assets_name=None, requirements=None):
     require.directory(str(directory), use_sudo=True)
 
     with settings(sudo_prefix=env.sudo_prefix + ' -H'):  # set HOME for pip log/cache
         require.python.virtualenv(str(directory), venv_python='python3', use_sudo=True)
 
         with python.virtualenv(str(directory)):
-            require.python.packages(require_packages, use_sudo=True)
-            sudo('webassets -m %s.assets build' % assets_name)
+            if require_packages:
+                require.python.packages(require_packages, use_sudo=True)
+            if requirements:
+                require.python.requirements(requirements, use_sudo=True)
+            if assets_name:
+                sudo('webassets -m %s.assets build' % assets_name)
 
 
 def require_logging(log_dir, logrotate, access_log, error_log):
@@ -337,23 +360,25 @@ def http_auth(htpasswd_file, username, public=False):
     return auth if userpass else '', auth
 
 
-def upload_local_sqldump(app, ctx, lsb_codename):
-    db_name = prompt('Replace with dump of local database:', default=app.name)
-    sqldump = pathlib.Path(tempfile.mktemp(suffix='.sql.gz', prefix='%s-' % db_name))
-    target = pathlib.PurePosixPath('/tmp') / sqldump.name
+def upload_sqldump(app):
+    if app.dbdump:
+        latest = cdstar.get_latest_bitstream(app.dbdump)
+        target = pathlib.PurePosixPath('/tmp') / latest.name
+        run('curl -s -o {0} {1}'.format(target, latest.url))
+    else:
+        db_name = prompt('Replace with dump of local database:', default=app.name)
+        sqldump = pathlib.Path(tempfile.mktemp(suffix='.sql.gz', prefix='%s-' % db_name))
+        target = pathlib.PurePosixPath('/tmp') / sqldump.name
 
-    db_user = '-U postgres ' if PLATFORM == 'windows' else ''
-    local('pg_dump %s--no-owner --no-acl -Z 9 -f %s %s' % (db_user, sqldump, db_name))
+        db_user = '-U postgres ' if PLATFORM == 'windows' else ''
+        local('pg_dump %s--no-owner --no-acl -Z 9 -f %s %s' % (db_user, sqldump, db_name))
 
-    require.file(str(target), source=str(sqldump))
-    sqldump.unlink()
+        require.file(str(target), source=str(sqldump))
+        sqldump.unlink()
 
     # TODO: assert supervisor.process_status(app.name) != 'RUNNING'
     if postgres.database_exists(app.name):
-        require_postgres(app.name,
-                         user_name=app.name, user_password=app.name,
-                         pg_unaccent=app.pg_unaccent, pg_collkey=app.pg_collkey,
-                         lsb_codename=lsb_codename, drop=True)
+        require_postgres(app, drop=True)
 
     sudo('gunzip -c %s | psql -d %s' % (target, app.name), user=app.name)
     sudo('vacuumdb -zf %s' % app.name, user='postgres')
