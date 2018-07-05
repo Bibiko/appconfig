@@ -11,10 +11,10 @@ import random
 import pathlib
 
 from fabric.api import env, settings, shell_env, prompt, sudo, run, cd, local
-from fabric.contrib.files import exists, comment
+from fabric.contrib.files import exists, comment, sed
 from fabric.contrib.console import confirm
 from fabtools import (
-    require, files, python, postgres, nginx, system, service, supervisor, user)
+    require, files, python, postgres, nginx, system, service, supervisor, user, deb)
 
 from .. import PKG_DIR
 from .. import helpers
@@ -156,10 +156,21 @@ def deploy(app, with_blog=None, with_alembic=False):
     ctx = template_context(app, workers=workers, with_blog=with_blog)
 
     if app.stack == 'soundcomparisons':
-        #
-        # service php-fpm restart (or similar)
-        #
-        service.reload('nginx')
+        require.git.working_copy(
+            'https://github.com/{0}/{1}.git'.format(app.github_org, app.github_repos),
+            path=str(app.home_dir / app.name),
+            use_sudo=True,
+            user=app.name)
+        require_bower(app, d=app.home_dir / app.name / 'site' / 'js')
+        require_php(app)
+        require_mysql(app)
+
+        with shell_env(SYSTEMD_PAGER=''):
+            require.nginx.server()
+
+        sudo_upload_template('nginx-php-fpm-app.conf', str(app.nginx_site), app=app)
+        nginx.enable(app.name)
+        systemd.enable(app, pathlib.Path(os.getcwd()) / 'systemd')
         return
 
     #
@@ -174,10 +185,7 @@ def deploy(app, with_blog=None, with_alembic=False):
     #
     # If some of the static assets are managed via bower, update them.
     #
-    if exists(str(app.static_dir / 'bower.json')):
-        sudo('npm install -g bower')
-        with cd(str(app.static_dir)):
-            sudo('bower --allow-root install')
+    require_bower(app)
 
     require_nginx(
         ctx,
@@ -218,6 +226,39 @@ def deploy(app, with_blog=None, with_alembic=False):
     res = run('curl http://localhost:%s/_ping' % app.port)
     assert json.loads(res)['status'] == 'ok'
     systemd.enable(app, pathlib.Path(os.getcwd()) / 'systemd')
+
+
+def require_php(app):
+    require.deb.package('php-fpm')
+    sed('/etc/php/7.0/fpm/php.ini',
+        'variables_order = "GPCS"',
+        'variables_order = "EGPCS"', use_sudo=True)
+    sudo_upload_template(
+        'php-fpm-www.conf',
+        '/etc/php/7.0/fpm/pool.d/www{0}.conf'.format(app.name),
+        app=app,
+    )
+    sudo('systemctl restart php7.0-fpm.service')
+
+
+def require_mysql(app):
+    if not deb.is_installed('mariadb-server'):
+        require.deb.packages(['mariadb-server', 'mariadb-client', 'php-mysql'])
+
+    require.mysql.user(app.name, app.name)
+    require.mysql.database(app.name, owner=app.name)
+
+    if confirm('Recreate database?', default=False):
+        upload_sqldump(app)
+
+
+def require_bower(app, d=None):
+    require.deb.packages(['npm', 'nodejs-legacy'])
+    d = d or app.static_dir
+    if exists(str(d / 'bower.json')):
+        sudo('npm install -g bower')
+        with cd(str(d)):
+            sudo('bower --allow-root install')
 
 
 def require_bibutils(executable='/usr/local/bin/bib2xml',
@@ -376,12 +417,17 @@ def upload_sqldump(app):
         require.file(str(target), source=str(sqldump))
         sqldump.unlink()
 
-    # TODO: assert supervisor.process_status(app.name) != 'RUNNING'
-    if postgres.database_exists(app.name):
-        require_postgres(app, drop=True)
+    if app.stack == 'soundcomparisons':
+        sudo('echo "drop database {0};" | mysql'.format(app.name))
+        require.mysql.database(app.name, owner=app.name)
+        sudo('gunzip -c {0} | mysql -u {1} --password={1} -D {1}'.format(target, app.name), user=app.name)
+    else:
+        # TODO: assert supervisor.process_status(app.name) != 'RUNNING'
+        if postgres.database_exists(app.name):
+            require_postgres(app, drop=True)
 
-    sudo('gunzip -c %s | psql -d %s' % (target, app.name), user=app.name)
-    sudo('vacuumdb -zf %s' % app.name, user='postgres')
+        sudo('gunzip -c %s | psql -d %s' % (target, app.name), user=app.name)
+        sudo('vacuumdb -zf %s' % app.name, user='postgres')
     files.remove(str(target))
 
 

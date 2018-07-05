@@ -10,6 +10,7 @@ from fabric.contrib.console import confirm
 from fabtools import require, python
 
 from .. import APPS_DIR
+from .. import cdstar
 
 from . import task_app_from_environment
 
@@ -17,18 +18,32 @@ __all__ = [
     'run_script', 'create_downloads',
     'copy_downloads', 'copy_rdfdump',
     'pip_freeze', 'load_db', 'dump_db',
+    'upload_db_to_cdstar',
 ]
 
 
-def dump_db(app):
+def dump_db(app, dbname=None):
     remote_dump = '/tmp/db.sql'
-    sudo('pg_dump --no-owner --no-acl -f %s %s' % (remote_dump, app.name), user=app.name)
+    if app.stack == 'soundcomparisons':
+        dbname = dbname or app.name
+        dump_cmd = 'mysqldump -h localhost -u {0} -p --routines --single-transaction {1} >> {2}'.format(
+            app.name, dbname, remote_dump)
+    else:
+        assert dbname is None
+        dump_cmd = 'pg_dump --no-owner --no-acl -f %s %s' % (remote_dump, app.name)
+    sudo(dump_cmd, user=app.name)
     sudo('gzip -f {0}'.format(remote_dump), user=app.name)
     remote_dump += '.gz'
     local_dump = pathlib.Path(tempfile.mktemp(suffix='.sql.gz', prefix='%s-' % app.name))
     get(remote_path=remote_dump, local_path=str(local_dump))
     sudo('rm %s' % remote_dump, user=app.name)
     return local_dump
+
+
+def upload_db_to_cdstar(app, dbname=None):
+    sql_dump = dump_db(app, dbname=dbname)
+    cdstar.add_bitstream(app.dbdump, sql_dump)
+    sql_dump.unlink()
 
 
 @task_app_from_environment
