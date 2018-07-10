@@ -1,37 +1,33 @@
+# Sound-Comparisons
 
-Write specific config to a separate config file
-/etc/php/7.0/fpm/pool.d/wwwsoundcomparisons.conf
+## Tasks
 
-See
-https://serverfault.com/questions/805647/override-php-fpm-pool-config-values-with-another-file
+### Deploying code updates
 
+Run
+```bash
+fab deploy:production
 ```
-253c259
-< access.log = /var/log/$pool.access.log
----
-> ;access.log = log/$pool.access.log
-355c361
-< chdir = /srv/soundcomparisons/site
----
-> ;chdir = /var/www
-362c368
-< catch_workers_output = yes
----
-> ;catch_workers_output = yes
-389,393d394
-< env[DEPLOYED] = 'true'
-< env[MYSQL_SERVER] = 'localhost'
-< env[MYSQL_USER] = 'soundcomparisons'
-< env[MYSQL_PASSWORD] = '...'
-< env[MYSQL_DATABASE] = 'v4'
-417c418
-< php_admin_flag[log_errors] = on
----
-> ;php_admin_flag[log_errors] = on
-```
+making sure not to recreate the database.
 
 
+### Deploying the app to a new server
 
-TODO:
-- fix php.ini variables_order
-- run bower install in js dir
+1. Run
+   ```bash
+   fab shutdown:production
+   ```
+   on the current production installation.
+2. Edit, commit and push `apps.ini` switching the production setting to
+   the new server.
+3. Run
+   ```bash
+   fab deploy:production
+   ```
+   making sure to (re)create the database (from the dump that has been created
+   when running `shutdown`).
+4. Run
+   ```bash
+   fab load_soundfile_catalog:production,/path/to/soundcomparisons-data/soundfiles/catalog.json
+   ```
+   to load the information about available soundfiles in the app DB.
