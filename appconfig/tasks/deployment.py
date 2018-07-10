@@ -253,9 +253,9 @@ def require_mysql(app):
 
 
 def require_bower(app, d=None):
-    require.deb.packages(['npm', 'nodejs-legacy'])
     d = d or app.static_dir
     if exists(str(d / 'bower.json')):
+        require.deb.packages(['npm', 'nodejs-legacy'])
         sudo('npm install -g bower')
         with cd(str(d)):
             sudo('bower --allow-root install')
