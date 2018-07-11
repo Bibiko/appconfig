@@ -162,6 +162,7 @@ def deploy(app, with_blog=None, with_alembic=False):
             use_sudo=True,
             user=app.name)
         require_bower(app, d=app.home_dir / app.name / 'site' / 'js')
+        require_grunt(app, d=app.home_dir / app.name / 'site' / 'js')
         require_php(app)
         require_mysql(app)
 
@@ -186,6 +187,7 @@ def deploy(app, with_blog=None, with_alembic=False):
     # If some of the static assets are managed via bower, update them.
     #
     require_bower(app)
+    require_grunt(app)
 
     require_nginx(
         ctx,
@@ -256,9 +258,19 @@ def require_bower(app, d=None):
     d = d or app.static_dir
     if exists(str(d / 'bower.json')):
         require.deb.packages(['npm', 'nodejs-legacy'])
-        sudo('npm install -g bower')
+        sudo('npm install -g bower@1.8.4')
         with cd(str(d)):
             sudo('bower --allow-root install')
+
+
+def require_grunt(app, d=None):
+    d = d or app.static_dir
+    if exists(str(d / 'Gruntfile.js')):
+        require.deb.packages(['npm', 'nodejs-legacy'])
+        sudo('npm install -g grunt-cli@1.2.0')
+        with cd(str(d)):
+            sudo('npm install')
+            sudo('grunt')
 
 
 def require_bibutils(executable='/usr/local/bin/bib2xml',
