@@ -65,9 +65,5 @@ def _update_nginx(app, with_varnish=True, varnish_port=PORT):
     if with_varnish:
         app = app.replace(port=varnish_port)
     ctx = deployment.template_context(app)
-    deployment.require_nginx(ctx,
-                             default_site=app.nginx_default_site, site=app.nginx_site,
-                             location=app.nginx_location, logrotate=app.logrotate,
-                             venv_dir=app.venv_dir,
-                             htpasswd_file=app.nginx_htpasswd, htpasswd_user=app.name)
+    deployment.require_nginx(ctx)
     service.reload('nginx')

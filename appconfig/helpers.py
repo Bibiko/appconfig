@@ -3,10 +3,18 @@
 import os
 import sys
 import datetime
+import getpass
 
 import pytz
 
 __all__ = ['caller_dirname', 'duplicates', 'strfnow']
+
+
+def getpwd(user):
+    pwd = None
+    while not pwd:
+        pwd = getpass.getpass(prompt='HTTP Basic Auth password for user %s: ' % user)
+    return pwd
 
 
 def caller_dirname(steps=1):

@@ -3,7 +3,6 @@
 import os
 import json
 import time
-import getpass
 import platform
 import tempfile
 import functools
@@ -32,7 +31,7 @@ PG_COLLKEY_DIR = PKG_DIR / 'pg_collkey-v0.5'
 TEMPLATE_DIR = PKG_DIR / 'templates'
 
 
-def template_context(app, workers=3, with_blog=False,):
+def template_context(app, workers=3, with_blog=False):
     ctx = {
         'SITE': {'test': False, 'production': True}[env.environment],
         'TEST': {'production': False, 'test': True}[env.environment],
@@ -190,17 +189,7 @@ def deploy(app, with_blog=None, with_alembic=False):
     require_bower(app)
     require_grunt(app)
 
-    require_nginx(
-        ctx,
-        default_site=app.nginx_default_site,
-        site=app.nginx_site,
-        location=app.nginx_location,
-        logrotate=app.logrotate,
-        venv_dir=app.venv_dir,
-        htpasswd_file=app.nginx_htpasswd,
-        htpasswd_user=app.name,
-        with_clld=app.stack == 'clld',
-        public=app.public)
+    require_nginx(ctx)
 
     if app.stack == 'clld':
         require_bibutils()
@@ -355,31 +344,32 @@ def require_logging(log_dir, logrotate, access_log, error_log):
                              access_log=access_log, error_log=error_log)
 
 
-def require_nginx(ctx, default_site, site, location, logrotate, venv_dir,
-                  htpasswd_file, htpasswd_user, with_clld=False, public=False):
+def require_nginx(ctx):
+    app = ctx['app']
+
     with shell_env(SYSTEMD_PAGER=''):
         require.nginx.server()
 
-    auth, admin_auth = http_auth(htpasswd_file, username=htpasswd_user, public=public)
+    auth, admin_auth = http_auth(app)
 
     # TODO: consider require.nginx.site
     upload_app = functools.partial(
-        sudo_upload_template, 
+        sudo_upload_template,
         'nginx-app.conf',
         context=ctx,
-        clld_dir=get_clld_dir(venv_dir) if with_clld else '',
+        clld_dir=get_clld_dir(app.venv_dir) if app.stack == 'clld' else '',
         auth=auth,
         admin_auth=admin_auth)
 
     if ctx['SITE']:
-        upload_app(dest=str(site))
-        nginx.enable(site.name)
+        upload_app(dest=str(app.nginx_site))
+        nginx.enable(app.nginx_site.name)
         if ctx['VBOX_LOCALHOST']:
-            comment(default_site, 'server_name localhost;', use_sudo=True)
+            comment(app.nginx_default_site, 'server_name localhost;', use_sudo=True)
     else:  # test environment
-        require.directory(str(location.parent), use_sudo=True)
-        upload_app(dest=str(location))
-        sudo_upload_template('nginx-default.conf', dest=str(default_site))
+        require.directory(str(app.nginx_location.parent), use_sudo=True)
+        upload_app(dest=str(app.nginx_location))
+        sudo_upload_template('nginx-default.conf', dest=str(app.nginx_default_site))
 
 
 def get_clld_dir(venv_dir):
@@ -390,28 +380,28 @@ def get_clld_dir(venv_dir):
     return clld_path.parent
 
 
-def http_auth(htpasswd_file, username, public=False):
-    if not (public and env.environment == 'production'):
-        userpass = getpass.getpass(
-            prompt='HTTP Basic Auth password for user %s: ' % username)
-    else:
-        userpass = None
-    pwds = {username: userpass, 'admin': ''}
-    while not pwds['admin']:
-        pwds['admin'] = getpass.getpass(
-            prompt='HTTP Basic Auth password for user admin: ')
+def http_auth(app):
+    pwds = {
+        app.name: None,  # Require no HTTP authentication by default in production.
+        'admin': 'admin'  # For the /admin path, require trivial HTTP auth by default.
+    }
+    if not (app.public and env.environment == 'production'):
+        # Non-public or test sites:
+        pwds[app.name] = helpers.getpwd(app.name)
+    if app.with_admin:
+        pwds['admin'] = helpers.getpwd('admin')
 
-    require.directory(str(htpasswd_file.parent), use_sudo=True)
+    require.directory(str(app.nginx_htpasswd.parent), use_sudo=True)
     pairs = [(u, p) for u, p in pwds.items() if p]
     for opts, pairs in [('-bdc', pairs[:1]), ('-bd', pairs[1:])]:
         for u, p in pairs:
-            sudo('htpasswd %s %s %s %s' % (opts, htpasswd_file, u, p))
+            sudo('htpasswd %s %s %s %s' % (opts, app.nginx_htpasswd, u, p))
 
     auth = ('proxy_set_header Authorization $http_authorization;\n'
             'proxy_pass_header Authorization;\n'
             'auth_basic "%s";\n'
-            'auth_basic_user_file %s;\n' % (username, htpasswd_file))
-    return auth if userpass else '', auth
+            'auth_basic_user_file %s;\n' % (app.name, app.nginx_htpasswd))
+    return auth if pwds[app.name] else '', auth
 
 
 def upload_sqldump(app):

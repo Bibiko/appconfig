@@ -26,10 +26,10 @@ def test_deploy_distrib(mocker):
 
 @pytest.fixture()
 def mocked_deployment(mocker):
-    getpass = mocker.Mock(**{'getpass.return_value': 'password'})
+    getpwd = mocker.Mock(return_value='password')
+    mocker.patch('appconfig.tasks.helpers.getpwd', getpwd)
     mocked = mocker.patch.multiple('appconfig.tasks.deployment',
         time=mocker.Mock(),
-        getpass=getpass,
         pathlib=mocker.DEFAULT,
         prompt=mocker.Mock(return_value='app'),
         sudo=mocker.Mock(return_value='/usr/venvs/__init__.py'),
@@ -49,19 +49,19 @@ def mocked_deployment(mocker):
         system=mocker.Mock(**{'distrib_id.return_value': 'Ubuntu',
                               'distrib_codename.return_value': 'xenial'}),
     )
-    return argparse.Namespace(getpass=getpass, **mocked)
+    return argparse.Namespace(getpwd=getpwd, **mocked)
 
 
 def test_deploy_public(mocker, config, mocked_deployment):
     mocker.patch('appconfig.tasks.APP', config['testapppublic'])
     tasks.deploy('production')
-    mocked_deployment.getpass.getpass.assert_called_once_with(prompt=mocker.ANY)
+    assert not mocked_deployment.getpwd.called
 
 
-def test_deploy(mocker, mocked_deployment):
+def test_deploy(mocker, config, mocked_deployment):
+    mocker.patch('appconfig.tasks.APP', config['testapp'])
     tasks.deploy('production')
-    mocked_deployment.getpass.getpass.assert_has_calls([mocker.call(prompt=mocker.ANY)] * 2)
-    assert mocked_deployment.getpass.getpass.call_count == 2
+    assert mocked_deployment.getpwd.call_count == 2
     tasks.deploy('production', with_alembic=True)
     tasks.deploy('test')
     tasks.deploy('test', with_alembic=True)
