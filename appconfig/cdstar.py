@@ -4,6 +4,8 @@ from pycdstar.api import Cdstar
 from cdstarcat.resources import RollingBlob
 
 SERVICE_URL = os.environ.get('CDSTAR_URL')
+USER = os.environ.get('CDSTAR_USER')
+PWD = os.environ.get('CDSTAR_PWD')
 
 
 class NamedBitstream(object):
@@ -21,10 +23,7 @@ class NamedBitstream(object):
 
 
 def get_api():
-    return Cdstar(
-        service_url=SERVICE_URL,
-        user=os.environ['CDSTAR_USER'],
-        password=os.environ['CDSTAR_PWD'])
+    return Cdstar(service_url=SERVICE_URL, user=USER, password=PWD)
 
 
 def get_latest_bitstream(oid):

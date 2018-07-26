@@ -155,7 +155,7 @@ def deploy(app, with_blog=None, with_alembic=False):
     with_blog = with_blog if with_blog is not None else app.with_blog
     ctx = template_context(app, workers=workers, with_blog=with_blog)
 
-    if app.stack == 'soundcomparisons':
+    if app.stack == 'soundcomparisons':  # pragma: no cover
         require.git.working_copy(
             'https://github.com/{0}/{1}.git'.format(app.github_org, app.github_repos),
             path=str(app.home_dir / app.name),
@@ -220,7 +220,7 @@ def deploy(app, with_blog=None, with_alembic=False):
     systemd.enable(app, pathlib.Path(os.getcwd()) / 'systemd')
 
 
-def require_php(app):
+def require_php(app):  # pragma: no cover
     require.deb.package('php-fpm')
     sed('/etc/php/7.0/fpm/php.ini',
         'variables_order = "GPCS"',
@@ -233,7 +233,7 @@ def require_php(app):
     sudo('systemctl restart php7.0-fpm.service')
 
 
-def require_mysql(app):
+def require_mysql(app):  # pragma: no cover
     if not deb.is_installed('mariadb-server'):
         require.deb.packages(['mariadb-server', 'mariadb-client', 'php-mysql'])
 
