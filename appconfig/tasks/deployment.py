@@ -9,6 +9,7 @@ import tempfile
 import functools
 import random
 import pathlib
+import re
 
 from fabric.api import env, settings, shell_env, prompt, sudo, run, cd, local
 from fabric.contrib.files import exists, comment, sed
@@ -415,9 +416,14 @@ def http_auth(htpasswd_file, username, public=False):
 
 def upload_sqldump(app):
     if app.dbdump:
-        latest = cdstar.get_latest_bitstream(app.dbdump)
-        target = pathlib.PurePosixPath('/tmp') / latest.name
-        run('curl -s -o {0} {1}'.format(target, latest.url))
+        if re.match('http(s)?://', app.dbdump):
+            fname = 'dump.sql.gz'
+            url = app.dbdump
+        else:
+            latest = cdstar.get_latest_bitstream(app.dbdump)
+            fname, url = latest.name, latest.url
+        target = pathlib.PurePosixPath('/tmp') / fname
+        run('curl -s -o {0} {1}'.format(target, url))
     else:
         db_name = prompt('Replace with dump of local database:', default=app.name)
         sqldump = pathlib.Path(tempfile.mktemp(suffix='.sql.gz', prefix='%s-' % db_name))
