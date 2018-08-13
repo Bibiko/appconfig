@@ -1,12 +1,13 @@
 alembic==0.9.7
 attrs==17.4.0
+Babel==2.5.3
 beautifulsoup4==4.6.0
 bs4==0.0.1
 certifi==2017.11.5
 chardet==3.0.4
-clld==4.0.1
+clld==4.2.2
 clld-glottologfamily-plugin==2.1.0
-clldmpg==3.1.0
+clldmpg==3.3.1
 clldutils==2.0.1
 colander==1.4
 colorlog==3.1.0
@@ -27,6 +28,7 @@ newick==0.8.0
 paginate==0.5.6
 PasteDeploy==1.5.2
 pathlib2==2.3.0
+-e git+https://github.com/clld/phoible.git@9f1201fea60687267a7f2c6532293627fa04da65#egg=phoible
 plaster==1.0
 plaster-pastedeploy==0.4.2
 psycopg2==2.7.3.2

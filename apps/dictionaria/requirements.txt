@@ -16,7 +16,7 @@ colander==1.4
 colorlog==3.1.0
 configparser==3.5.0
 csvw==1.0
--e git+https://github.com/clld/dictionaria.git@a55eaf10dc5dd1c0373c7825397fc01df3907f82#egg=dictionaria
+-e git+https://github.com/clld/dictionaria.git@a56470d5daff012283350cdbe07b99d4b0d0c923#egg=dictionaria
 docopt==0.6.2
 feedparser==5.2.1
 gunicorn==19.7.1
@@ -79,4 +79,5 @@ yuicompressor==2.4.8
 zope.deprecation==4.3.0
 zope.interface==4.4.3
 zope.sqlalchemy==0.7.7
-
+[33mYou are using pip version 9.0.1, however version 18.0 is available.
+You should consider upgrading via the 'pip install --upgrade pip' command.[0m

@@ -3,13 +3,14 @@ attrs==17.4.0
 certifi==2017.11.5
 chardet==3.0.4
 clld==4.0.1
-clldmpg==3.1.0
+clldmpg==3.1.1
 clldutils==2.0.1
 colander==1.4
 colorlog==3.1.0
 configparser==3.5.0
 csvw==1.0
 feedparser==5.2.1
+-e git+https://github.com/clld/grammaticon.git@6455fdbaf0bcdf326c664735f5540cbb9058debb#egg=grammaticon
 gunicorn==19.7.1
 hupper==1.0
 idna==2.6
