@@ -20,6 +20,7 @@ from .. import PKG_DIR
 from .. import helpers
 from .. import cdstar
 from .. import systemd
+from . import letsencrypt
 
 from . import task_app_from_environment
 
@@ -351,6 +352,9 @@ def require_nginx(ctx):
         require.nginx.server()
 
     auth, admin_auth = http_auth(app)
+
+    if env.environment == 'production':
+        letsencrypt.require_cert(ctx['app'])
 
     # TODO: consider require.nginx.site
     upload_app = functools.partial(

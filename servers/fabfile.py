@@ -1,5 +1,7 @@
 from fabric.api import task, sudo
 
+from appconfig.tasks import letsencrypt
+
 
 @task
 def ls():
@@ -7,3 +9,7 @@ def ls():
     sudo('supervisorctl avail')
     sudo('psql -l', user='postgres')
 
+
+@task
+def renew_certs():
+    letsencrypt.renew()
