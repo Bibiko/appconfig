@@ -46,6 +46,7 @@ def mocked_deployment(mocker):
         nginx=mocker.Mock(),
         service=mocker.Mock(),
         supervisor=mocker.Mock(),
+        letsencrypt=mocker.Mock(),
         system=mocker.Mock(**{'distrib_id.return_value': 'Ubuntu',
                               'distrib_codename.return_value': 'xenial'}),
     )
