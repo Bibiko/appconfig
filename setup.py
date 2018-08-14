@@ -20,6 +20,7 @@ setup(
     install_requires=[
         'Fabric3>=1.11',
         'fabtools-python>=0.19.7',
+        'python-dateutil',
         'Jinja2',
         'pytz',
         'pycdstar>=0.4',

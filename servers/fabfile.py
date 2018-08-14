@@ -3,11 +3,13 @@ from fabric.tasks import execute
 from fabric.contrib.console import confirm
 from fabric.contrib.files import exists
 from fabtools import python
+from dateutil.parser import parse
 
 from appconfig import APPS_DIR, APPS
 from appconfig.config import App
 
 env.hosts = APPS.hostnames
+ACC = []  # A global accumulator to store results across tasks
 
 
 def pip_freeze(app):
@@ -51,6 +53,21 @@ def renew_certs():
 
         with settings(warn_only=True):
             letsencrypt.renew()
+
+
+@task
+def last_deploy():
+    global ACC
+    with settings(warn_only=True):
+        for a in APPS.values():
+            if a.production == env.host and exists(str(a.config)):
+                res = parse(run('stat -c "%y" {0}'.format(a.config)))
+                ACC.append((a.name, res))
+    if env.host == env.hosts[-1]:
+        maxname = max(len(t[0]) for t in ACC)
+        for a, dt in sorted(ACC, key=lambda t: t[1], reverse=True):
+            print('{0}{1}'.format(
+                a.ljust(maxname + 1), dt.isoformat().replace('T', ' ').split('.')[0]))
 
 
 @task
