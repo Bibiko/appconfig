@@ -1,4 +1,4 @@
-from fabric.api import run, task, sudo, settings
+from fabric.api import run, task, sudo, settings, env
 from fabric.tasks import execute
 from fabtools import python
 
@@ -31,6 +31,16 @@ def ls():
 
 @task
 def renew_certs():
+    letsencrypt.require_certbot()
+    certs = set(sudo('ls -1 /etc/letsencrypt/live').split())
+    apps = set(a.domain for a in APPS.values() if a.production == env['host'])
+    apps.add(env['host'])
+    for cert in certs - apps:
+        # Obsolete certificate! The app is no longer deployed on this host.
+        letsencrypt.delete(cert)
+    for app in apps - certs:
+        letsencrypt.require_cert(app)
+
     letsencrypt.renew()
 
 

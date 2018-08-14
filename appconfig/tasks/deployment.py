@@ -354,6 +354,7 @@ def require_nginx(ctx):
     auth, admin_auth = http_auth(app)
 
     if env.environment == 'production':
+        letsencrypt.require_certbot()
         letsencrypt.require_cert(ctx['app'])
 
     # TODO: consider require.nginx.site
