@@ -3,13 +3,14 @@ from fabtools import require
 
 
 def require_certbot():
+    require.deb.package('software-properties-common')
     require.deb.ppa('ppa:certbot/certbot')
-    require.deb.packages(['software-properties-common', 'python-certbot-nginx'])
+    require.deb.package('python-certbot-nginx')
 
 
 def require_cert(domain):
     # If an App instance is passed, we lookup its domain attribute:
-    sudo('certbot --nginx -n -d {0} certonly'.format(getattr(domain, 'domain', domain)))
+    sudo('certbot --nginx -n -d {0} certonly --agree-tos --email lingweb@shh.mpg.de'.format(getattr(domain, 'domain', domain)))
 
 
 def delete(cert):
