@@ -217,10 +217,11 @@ def deploy(app, with_blog=None, with_alembic=False):
 
     time.sleep(5)
     res = run('curl http://localhost:%s/_ping' % app.port)
-    res_https = run('curl https://%s/_ping' % (app.domain))
-
     assert json.loads(res)['status'] == 'ok'
-    assert json.loads(res_https)['status'] == 'ok'
+
+    if env.environment == 'production' and app.public:
+        res_https = run('curl https://%s/_ping' % (app.domain))
+        assert json.loads(res_https)['status'] == 'ok'
 
     systemd.enable(app, pathlib.Path(os.getcwd()) / 'systemd')
 
