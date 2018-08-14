@@ -1,9 +1,13 @@
 from fabric.api import run, task, sudo, settings, env
 from fabric.tasks import execute
+from fabric.contrib.console import confirm
+from fabric.contrib.files import exists
 from fabtools import python
 
 from appconfig import APPS_DIR, APPS
 from appconfig.config import App
+
+env.hosts = APPS.hostnames
 
 
 def pip_freeze(app):
@@ -31,17 +35,22 @@ def ls():
 
 @task
 def renew_certs():
-    letsencrypt.require_certbot()
-    certs = set(sudo('ls -1 /etc/letsencrypt/live').split())
-    apps = set(a.domain for a in APPS.values() if a.production == env['host'])
-    apps.add(env['host'])
-    for cert in certs - apps:
-        # Obsolete certificate! The app is no longer deployed on this host.
-        letsencrypt.delete(cert)
-    for app in apps - certs:
-        letsencrypt.require_cert(app)
+    if confirm("Renew certificates: " + env.host_string + "?", default=False):
+        letsencrypt.require_certbot()
+        if exists('/etc/letsencrypt/live'):
+            certs = set(sudo('ls -1 /etc/letsencrypt/live').split())
+        else:
+            certs = set()
+        apps = set(a.domain for a in APPS.values() if a.production == env['host'])
+        apps.add(env['host'])
+        for cert in certs - apps:
+            # Obsolete certificate! The app is no longer deployed on this host.
+            letsencrypt.delete(cert)
+        for app in apps - certs:
+            letsencrypt.require_cert(app)
 
-    letsencrypt.renew()
+        with settings(warn_only=True):
+            letsencrypt.renew()
 
 
 @task
