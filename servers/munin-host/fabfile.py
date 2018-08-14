@@ -33,7 +33,7 @@ def munin_host():
     # Update notification settings:
     files.sed(MUNIN_CFG,
               '#contact.someuser.command mail -s "Munin notification" somejuser@fnord.comm',
-              'contact.email.command mail -s "Munin Notification for ${var:host}" lingweb@shh.mpg.de',
+              'contact.email.command mail -s "Munin Notification for ${var:host}" %s' % APPS.defaults['error_email'],
               use_sudo=True)
 
     # Update host tree:

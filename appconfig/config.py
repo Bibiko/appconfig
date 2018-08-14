@@ -21,6 +21,12 @@ __all__ = ['Config']
 
 
 class Config(dict):
+    cfg = None
+
+    @property
+    def defaults(self):
+        if self.cfg:
+            return self.cfg['DEFAULT']
 
     @classmethod
     def from_file(cls, filepath, value_cls=None, validate=True):
@@ -33,6 +39,7 @@ class Config(dict):
         inst.hostnames = [h for _, h in parser.raw_items('_hosts')]
         if validate:
             inst.validate()
+        inst.cfg = parser
         return inst
 
     def validate(self):

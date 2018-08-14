@@ -1,6 +1,8 @@
 from fabric.api import sudo
 from fabtools import require
 
+from appconfig import APPS
+
 
 def require_certbot():
     require.deb.package('software-properties-common')
@@ -10,7 +12,8 @@ def require_certbot():
 
 def require_cert(domain):
     # If an App instance is passed, we lookup its domain attribute:
-    sudo('certbot --nginx -n -d {0} certonly --agree-tos --email lingweb@shh.mpg.de'.format(getattr(domain, 'domain', domain)))
+    sudo('certbot --nginx -n -d {0} certonly --agree-tos --email {1}'.format(
+        getattr(domain, 'domain', domain), APPS.defaults['error_email']))
 
 
 def delete(cert):
