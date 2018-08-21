@@ -358,8 +358,9 @@ def require_nginx(ctx):
 
     auth, admin_auth = http_auth(app)
 
+    letsencrypt.require_certbot()
+    letsencrypt.require_cert(env.host)
     if env.environment == 'production':
-        letsencrypt.require_certbot()
         letsencrypt.require_cert(ctx['app'])
 
     # TODO: consider require.nginx.site
@@ -371,6 +372,7 @@ def require_nginx(ctx):
         auth=auth,
         admin_auth=admin_auth)
 
+    sudo_upload_template('nginx-default.conf', dest=str(app.nginx_default_site), host=env.host)
     if ctx['SITE']:
         upload_app(dest=str(app.nginx_site))
         nginx.enable(app.nginx_site.name)
@@ -379,7 +381,6 @@ def require_nginx(ctx):
     else:  # test environment
         require.directory(str(app.nginx_location.parent), use_sudo=True)
         upload_app(dest=str(app.nginx_location))
-        sudo_upload_template('nginx-default.conf', dest=str(app.nginx_default_site))
 
 
 def get_clld_dir(venv_dir):
