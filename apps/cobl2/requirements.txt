@@ -8,7 +8,7 @@ clld-cognacy-plugin==0.1.0
 clld-phylogeny-plugin==1.0.1
 clldmpg==3.2.0
 clldutils==2.0.1
--e git+https://github.com/clld/cobl2.git@0e07dec648c34927181b2ca5e1b60577402d1284#egg=cobl2
+-e git+https://github.com/clld/cobl2.git@18eb3ac3a1901b70e08e961d267d9c117f39fc0c#egg=cobl2
 colander==1.4
 colorlog==3.1.2
 configparser==3.5.0

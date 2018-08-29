@@ -8,10 +8,10 @@ certifi==2017.11.5
 chardet==3.0.4
 clld==4.2.2
 clldmpg==3.3.1
-clldutils==2.0.1
+clldutils==2.1.0
 colander==1.4
 colorlog==3.1.0
--e git+https://github.com/clld/concepticon.git@60717cd53a1da65f40846fe865295426143a6162#egg=concepticon
+-e git+https://github.com/clld/concepticon.git@9088fd066d7442d6d8e9c36ab42b72dbda2a0b3b#egg=concepticon
 configparser==3.5.0
 csvw==1.0
 docopt==0.6.2
@@ -36,7 +36,7 @@ purl==1.3.1
 pybtex==0.21
 pycdstar==0.3.2
 pycldf==1.0.10
-pyconcepticon==1.2.0
+pyconcepticon==1.4.0
 pyparsing==2.2.0
 pyramid==1.9.1
 pyramid-exclog==1.0

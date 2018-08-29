@@ -1,10 +1,11 @@
 alembic==0.9.7
 attrs==17.4.0
+Babel==2.6.0
 beautifulsoup4==4.6.0
 bs4==0.0.1
 certifi==2018.1.18
 chardet==3.0.4
-clld==4.0.1
+clld==4.1.2
 clld-glottologfamily-plugin==2.1.0
 clldmpg==3.1.0
 clldutils==2.0.1
@@ -24,7 +25,7 @@ Markdown==2.6.11
 MarkupSafe==1.0
 nameparser==0.5.6
 newick==0.8.0
--e git+https://github.com/clld/nts.git@d8c9b0e833a4061adf20cf771903f9750aedcc54#egg=nts
+-e git+https://github.com/clld/nts.git@91f14fc18c4d4ba5c38d4bdde85ab677bda5bfad#egg=nts
 paginate==0.5.6
 PasteDeploy==1.5.2
 pathlib2==2.3.0

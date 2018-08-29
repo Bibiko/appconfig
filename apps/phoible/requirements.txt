@@ -28,7 +28,7 @@ newick==0.8.0
 paginate==0.5.6
 PasteDeploy==1.5.2
 pathlib2==2.3.0
--e git+https://github.com/clld/phoible.git@9f1201fea60687267a7f2c6532293627fa04da65#egg=phoible
+-e git+https://github.com/clld/phoible.git@73d140ae4c3377140fe3678b1997d0c13d42ad41#egg=phoible
 plaster==1.0
 plaster-pastedeploy==0.4.2
 psycopg2==2.7.3.2

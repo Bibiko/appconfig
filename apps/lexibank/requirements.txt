@@ -20,7 +20,7 @@ idna==2.6
 iso8601==0.1.12
 isodate==0.6.0
 latexcodec==1.0.5
--e git+https://github.com/clld/lexibank.git@528fd72d18f0b29fb69ba31767ead70934ae4fd9#egg=lexibank
+-e git+https://github.com/clld/lexibank.git@41ecc58327b3f3d8c79bc755bbe86c18222f2c60#egg=lexibank
 Mako==1.0.7
 Markdown==2.6.11
 MarkupSafe==1.0
