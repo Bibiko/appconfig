@@ -103,7 +103,15 @@ def load_soundfile_catalog(app, catalog):
     :param catalog: Path to soundfiles/catalog.json in a clone of the repos clld/soundcomparisons-data
     """
     with pathlib.Path(catalog).open() as fp:
-        catalog = json.load(fp)
+        cat = json.load(fp)
+
+    # Restructure catalog into {"stem":["uid", [".EXT1", ".EXT2", ...]]}
+    catalog = {}
+    for (k, v) in cat.items():
+        stem = v['metadata']['name']
+        fmts = [pathlib.Path(bs['bitstreamid']).suffix for bs in v['bitstreams']]
+        catalog[stem] = [k, fmts]
+    del cat
 
     # We keep track of soundfiles for existing Transcriptions by deleting the corresponding catalog
     # keys from this set:
@@ -112,8 +120,8 @@ def load_soundfile_catalog(app, catalog):
     def urls_from_catalog(stem):
         oid, fmts = catalog[stem]
         return [
-            'http://cdstar.shh.mpg.de/bitstreams/{0}/{1}.{2}'.format(
-                oid, stem, fmt) for fmt in list(set(fmts) & set(['mp3','ogg']))]
+            'http://cdstar.shh.mpg.de/bitstreams/{0}/{1}{2}'.format(
+                oid, stem, fmt) for fmt in list(set(fmts) & set(['.mp3','.ogg']))]
 
     transcriptions = read_from_db(app, TRANSCRIPTIONS)
 
