@@ -26,6 +26,15 @@ def get_api():
     return Cdstar(service_url=SERVICE_URL, user=USER, password=PWD)
 
 
+def add_backup_user(oid):
+    obj = get_api().get_object(oid)
+    acl = obj.acl.read()
+    obj.acl.update(
+        read=list(set(acl['read'] + ['backup'])),
+        write=list(set(acl['write'] + ['backup'])),
+    )
+
+
 def get_latest_bitstream(oid):
     bs = RollingBlob(oid=oid).latest(get_api())
     if bs:

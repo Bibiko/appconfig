@@ -23,7 +23,7 @@ setup(
         'python-dateutil',
         'Jinja2',
         'pytz',
-        'pycdstar>=0.4',
+        'pycdstar>=0.4.1',
         'cdstarcat>=0.5',
     ],
     extras_require={
