@@ -35,6 +35,7 @@ TEMPLATE_DIR = PKG_DIR / 'templates'
 def template_context(app, workers=3, with_blog=False):
     ctx = {
         'SITE': {'test': False, 'production': True}[env.environment],
+        'SSL': env.host.endswith('clld.org'),
         'TEST': {'production': False, 'test': True}[env.environment],
         'VBOX_LOCALHOST': env.host_string in VBOX_HOSTNAMES,
         'app': app, 'env': env, 'workers': workers,
@@ -358,10 +359,11 @@ def require_nginx(ctx):
 
     auth, admin_auth = http_auth(app)
 
-    letsencrypt.require_certbot()
-    letsencrypt.require_cert(env.host)
-    if env.environment == 'production':
-        letsencrypt.require_cert(ctx['app'])
+    if env.host.endswith('clld.org'):
+        letsencrypt.require_certbot()
+        letsencrypt.require_cert(env.host)
+        if env.environment == 'production':
+            letsencrypt.require_cert(ctx['app'])
 
     # TODO: consider require.nginx.site
     upload_app = functools.partial(
