@@ -168,7 +168,7 @@ def deploy(app, with_blog=None, with_alembic=False):
         with shell_env(SYSTEMD_PAGER=''):
             require.nginx.server()
 
-        sudo_upload_template('nginx-php-fpm-app.conf', str(app.nginx_site), app=app)
+        sudo_upload_template('nginx-php-fpm-app.conf', str(app.nginx_site), app=app, env=env)
         nginx.enable(app.name)
         if env.environment == 'production':
             # We only enable systemd services when deploying to production, because we don't want
