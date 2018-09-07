@@ -28,6 +28,10 @@ class Config(dict):
         if self.cfg:
             return self.cfg['DEFAULT']
 
+    @property
+    def production_hosts(self):
+        return set(app.production for app in self.values())
+
     @classmethod
     def from_file(cls, filepath, value_cls=None, validate=True):
         if value_cls is None:

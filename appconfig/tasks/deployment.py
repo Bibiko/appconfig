@@ -16,6 +16,7 @@ from fabric.contrib.console import confirm
 from fabtools import (
     require, files, python, postgres, nginx, system, service, supervisor, user, deb)
 
+from .. import APPS
 from .. import PKG_DIR
 from .. import helpers
 from .. import cdstar
@@ -27,17 +28,13 @@ from . import task_app_from_environment
 __all__ = ['deploy', 'start', 'stop', 'uninstall', 'sudo_upload_template']
 
 PLATFORM = platform.system().lower()
-VBOX_HOSTNAMES = {'vbox', 'xenial'}  # run on localhost
 PG_COLLKEY_DIR = PKG_DIR / 'pg_collkey-v0.5'
 TEMPLATE_DIR = PKG_DIR / 'templates'
 
 
 def template_context(app, workers=3, with_blog=False):
     ctx = {
-        'SITE': {'test': False, 'production': True}[env.environment],
-        'SSL': env.host.endswith('clld.org'),
-        'TEST': {'production': False, 'test': True}[env.environment],
-        'VBOX_LOCALHOST': env.host_string in VBOX_HOSTNAMES,
+        'PRODUCTION_HOST': env.host in APPS.production_hosts,
         'app': app, 'env': env, 'workers': workers,
         'auth': '',
         'bloghost': '', 'bloguser': '', 'blogpassword': '',
@@ -173,7 +170,9 @@ def deploy(app, with_blog=None, with_alembic=False):
 
         sudo_upload_template('nginx-php-fpm-app.conf', str(app.nginx_site), app=app)
         nginx.enable(app.name)
-        if env.environment == 'production' and env.host.endswith('clld.org'):
+        if env.environment == 'production':
+            # We only enable systemd services when deploying to production, because we don't want
+            # to start and run things like backup to CDSTAR from non-production systems.
             systemd.enable(app, pathlib.Path(os.getcwd()) / 'systemd')
         return
 
@@ -221,11 +220,14 @@ def deploy(app, with_blog=None, with_alembic=False):
     res = run('curl http://localhost:%s/_ping' % app.port)
     assert json.loads(res)['status'] == 'ok'
 
-    if env.environment == 'production' and app.public:
-        res_https = run('curl https://%s/_ping' % (app.domain))
-        assert json.loads(res_https)['status'] == 'ok'
+    if env.environment == 'production':
+        systemd.enable(app, pathlib.Path(os.getcwd()) / 'systemd')
 
-    systemd.enable(app, pathlib.Path(os.getcwd()) / 'systemd')
+        if app.public:
+            # Production apps are served over HTTPS. If they are public, we can check the complete
+            # stack:
+            res_https = run('curl https://%s/_ping' % (app.domain))
+            assert json.loads(res_https)['status'] == 'ok'
 
 
 def require_php(app):  # pragma: no cover
@@ -360,11 +362,11 @@ def require_nginx(ctx):
 
     auth, admin_auth = http_auth(app)
 
-    if env.host.endswith('clld.org'):
+    if env.environment != 'staging':
+        # Test and production instances are publicly accessible over HTTPS.
         letsencrypt.require_certbot()
         letsencrypt.require_cert(env.host)
-        if env.environment == 'production':
-            letsencrypt.require_cert(ctx['app'])
+        letsencrypt.require_cert(ctx['app'])
 
     # TODO: consider require.nginx.site
     upload_app = functools.partial(
@@ -376,11 +378,9 @@ def require_nginx(ctx):
         admin_auth=admin_auth)
 
     sudo_upload_template('nginx-default.conf', dest=str(app.nginx_default_site), host=env.host)
-    if ctx['SITE']:
+    if env.environment != 'test':
         upload_app(dest=str(app.nginx_site))
         nginx.enable(app.nginx_site.name)
-        if ctx['VBOX_LOCALHOST']:
-            comment(app.nginx_default_site, 'server_name localhost;', use_sudo=True)
     else:  # test environment
         require.directory(str(app.nginx_location.parent), use_sudo=True)
         upload_app(dest=str(app.nginx_location))
