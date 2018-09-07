@@ -1,3 +1,5 @@
+import os
+
 from fabric.api import sudo
 from fabtools import files
 
@@ -35,7 +37,7 @@ def enable(app, d):
     """
     if d.exists() and d.name == 'systemd':
         for unit in d.iterdir():
-            ctx = dict(app=app)
+            ctx = dict(app=app, osenv=os.environ)
             script = unit / 'script'
             if script.exists():
                 ctx['script_path'] = script_path = '/usr/bin/{0}-{1}'.format(app.name, unit.name)

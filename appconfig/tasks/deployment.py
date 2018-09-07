@@ -173,7 +173,8 @@ def deploy(app, with_blog=None, with_alembic=False):
 
         sudo_upload_template('nginx-php-fpm-app.conf', str(app.nginx_site), app=app)
         nginx.enable(app.name)
-        systemd.enable(app, pathlib.Path(os.getcwd()) / 'systemd')
+        if env.environment == 'production' and env.host.endswith('clld.org'):
+            systemd.enable(app, pathlib.Path(os.getcwd()) / 'systemd')
         return
 
     #
