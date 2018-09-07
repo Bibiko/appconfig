@@ -28,11 +28,7 @@ def get_api():
 
 def add_backup_user(oid):
     obj = get_api().get_object(oid)
-    acl = obj.acl.read()
-    obj.acl.update(
-        read=list(set(acl['read'] + ['backup'])),
-        write=list(set(acl['write'] + ['backup'])),
-    )
+    obj.acl.update(read=['backup', 'clld'], write=['backup', 'clld'])
 
 
 def get_latest_bitstream(oid):

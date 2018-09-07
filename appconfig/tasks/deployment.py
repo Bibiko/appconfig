@@ -423,11 +423,13 @@ def upload_sqldump(app):
         if re.match('http(s)?://', app.dbdump):
             fname = 'dump.sql.gz'
             url = app.dbdump
+            auth = ''
         else:
             latest = cdstar.get_latest_bitstream(app.dbdump)
             fname, url = latest.name, latest.url
+            auth = '-u"{0}:{1}" '.format(os.environ['CDSTAR_USER_BACKUP'], os.environ['CDSTAR_PWD_BACKUP'])
         target = pathlib.PurePosixPath('/tmp') / fname
-        run('curl -s -o {0} {1}'.format(target, url))
+        run('curl -s -o {0} {1} {2}'.format(target, auth, url))
     else:
         db_name = prompt('Replace with dump of local database:', default=app.name)
         sqldump = pathlib.Path(tempfile.mktemp(suffix='.sql.gz', prefix='%s-' % db_name))
