@@ -42,7 +42,4 @@ def add_bitstream(oid, fname):
     api = get_api()
     # Add the sql dump as latest bitstream ...
     rb.add(api, str(fname))
-    bs = rb.sorted_bitstreams(api)
-    if len(bs) > 1:
-        # ... and if there's more than one bitstream, remove the earliest.
-        bs[-1].delete()
+    rb.expunge(api, keep=10)
