@@ -24,4 +24,3 @@ def test_add_bitstream(mocker, testdir):
     mocker.patch('appconfig.cdstar.RollingBlob', RB)
     cdstar.add_bitstream('oid', testdir / 'apps.ini')
     assert RB.add.called
-    assert RB._sorted_bitstreams[-1].delete.called

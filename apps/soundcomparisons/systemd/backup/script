@@ -1,11 +1,14 @@
 #!/bin/bash
 # Name to use for the new database dump:
-cd {{ app.home_dir }}/backups/
-name=$(date -I)
+d={{ app.home_dir }}/backups/
+mkdir -p $d
+cd $d
+name=$(date +"db_dump_%Y%m%dT%H%M%SZ")
 echo "Creating database dump: $name.sql"
 # Creating the dump:
 mysqldump -hlocalhost -u{{ app.name }} -p{{ app.name }} --routines --single-transaction {{ app.name }} >> $name.sql
 gzip -f $name.sql
+curl -u"{{ osenv['CDSTAR_USER_BACKUP'] }}:{{ osenv['CDSTAR_PWD_BACKUP'] }}" -X POST -H "content-type: application/x-sql" --data-binary @"$name.sql.gz" https://cdstar.shh.mpg.de/bitstreams/{{ app.dbdump }}/$name
 # Keeping only 10 latest dumps:
 # Compare https://stackoverflow.com/a/10119963/448591
 ls -tr *sql.gz | grep -v 'create\|dump.sql' | head -n -10 | xargs --no-run-if-empty rm

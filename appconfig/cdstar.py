@@ -28,11 +28,7 @@ def get_api():
 
 def add_backup_user(oid):
     obj = get_api().get_object(oid)
-    acl = obj.acl.read()
-    obj.acl.update(
-        read=list(set(acl['read'] + ['backup'])),
-        write=list(set(acl['write'] + ['backup'])),
-    )
+    obj.acl.update(read=['backup', 'clld'], write=['backup', 'clld'])
 
 
 def get_latest_bitstream(oid):
@@ -46,7 +42,4 @@ def add_bitstream(oid, fname):
     api = get_api()
     # Add the sql dump as latest bitstream ...
     rb.add(api, str(fname))
-    bs = rb.sorted_bitstreams(api)
-    if len(bs) > 1:
-        # ... and if there's more than one bitstream, remove the earliest.
-        bs[-1].delete()
+    rb.expunge(api, keep=10)
