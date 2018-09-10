@@ -110,6 +110,7 @@ class App(argparse.Namespace):
         'with_admin': getboolean,
         'with_blog': getboolean,
         'workers': int,
+        'timeout': int,
         'deploy_duration': int,
         'require_deb_xenial': getwords,
         'require_deb': getwords,
