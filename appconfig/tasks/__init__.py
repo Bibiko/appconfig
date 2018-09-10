@@ -42,8 +42,10 @@ def task_app_from_environment(func_or_environment):
     if func is not None:
         @functools.wraps(func)
         def wrapper(environment, *args, **kwargs):
-            assert environment in ('production', 'test')
+            assert environment in ('production', 'test', 'staging')
             if not fabric.api.env.hosts:
+                if environment == 'staging':
+                    raise ValueError('staging tasks require an explicit host via -H')
                 # allow overriding the hosts by using fab's -H option
                 fabric.api.env.hosts = [getattr(APP, environment)]
             fabric.api.env.environment = environment
