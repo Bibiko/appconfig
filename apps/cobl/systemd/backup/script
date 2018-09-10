@@ -2,7 +2,7 @@
 backup_dir={{ app.home_dir }}/backups/
 mkdir -p $backup_dir
 cd $backup_dir
-name=$(date -I)
+name=$(date +"db_dump_%Y%m%dT%H%M%SZ")
 echo "Creating backup $name"
 pg_dump --no-owner --no-acl cobl > $name.sql
 echo "Compressing backup $name"

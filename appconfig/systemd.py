@@ -54,3 +54,21 @@ def enable(app, d):
             sudo('systemctl start {0}-{1}.{2}'.format(app.name, unit.name, enable))
             sudo('systemctl enable {0}-{1}.{2}'.format(app.name, unit.name, enable))
         sudo('systemctl daemon-reload')
+
+
+def uninstall(app, d):
+    if d.exists() and d.name == 'systemd':
+        for unit in d.iterdir():
+            delete = ['/usr/bin/{0}-{1}'.format(app.name, unit.name)]
+            enable = 'service'
+            for name in ['service', 'timer']:
+                if name == 'timer':
+                    enable = name
+                delete.append('/etc/systemd/system/{0}-{1}.{2}'.format(app.name, unit.name, name))
+            sudo('systemctl stop {0}-{1}.{2}'.format(app.name, unit.name, enable))
+            sudo('systemctl disable {0}-{1}.{2}'.format(app.name, unit.name, enable))
+            for p in delete:
+                if files.exists(p):
+                    sudo('rm {0}'.format(p))
+        sudo('systemctl daemon-reload')
+        sudo('systemctl reset-failed')

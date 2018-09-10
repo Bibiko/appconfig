@@ -124,7 +124,10 @@ def uninstall(app):  # pragma: no cover
 
     stop.execute_inner(app)
     if user.exists(app.name):
-        sudo('dropdb --if-exists %s' % app.name, user='postgres')
+        if app.stack != 'soundcomparisons':
+            sudo('dropdb --if-exists %s' % app.name, user='postgres')
+        else:
+            sudo('echo "drop database {0};" | mysql'.format(app.name))
         sudo('userdel -rf %s' % app.name)
 
     if exists(str(app.supervisor)):
@@ -132,6 +135,7 @@ def uninstall(app):  # pragma: no cover
 
     supervisor.update_config()
     service.reload('nginx')
+    systemd.uninstall(app, pathlib.Path(os.getcwd()) / 'systemd')
 
 
 @task_app_from_environment
