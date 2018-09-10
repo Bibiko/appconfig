@@ -120,7 +120,7 @@ def load_soundfile_catalog(app, catalog):
     def urls_from_catalog(stem):
         oid, fmts = catalog[stem]
         return [
-            'http://cdstar.shh.mpg.de/bitstreams/{0}/{1}{2}'.format(
+            'https://cdstar.shh.mpg.de/bitstreams/{0}/{1}{2}'.format(
                 oid, stem, fmt) for fmt in list(set(fmts) & set(['.mp3','.ogg']))]
 
     transcriptions = read_from_db(app, TRANSCRIPTIONS)

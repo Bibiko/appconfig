@@ -152,6 +152,13 @@ def deploy(app, with_blog=None, with_alembic=False):
 
     workers = 3 if app.workers > 3 and env.environment == 'test' else app.workers
     with_blog = with_blog if with_blog is not None else app.with_blog
+
+    if env.environment != 'staging':
+        # Test and production instances are publicly accessible over HTTPS.
+        letsencrypt.require_certbot()
+        letsencrypt.require_cert(env.host)
+        letsencrypt.require_cert(app)
+
     ctx = template_context(app, workers=workers, with_blog=with_blog)
 
     if app.stack == 'soundcomparisons':  # pragma: no cover
@@ -174,6 +181,7 @@ def deploy(app, with_blog=None, with_alembic=False):
             # We only enable systemd services when deploying to production, because we don't want
             # to start and run things like backup to CDSTAR from non-production systems.
             systemd.enable(app, pathlib.Path(os.getcwd()) / 'systemd')
+        service.reload('nginx')
         return
 
     #
@@ -361,12 +369,6 @@ def require_nginx(ctx):
         require.nginx.server()
 
     auth, admin_auth = http_auth(app)
-
-    if env.environment != 'staging':
-        # Test and production instances are publicly accessible over HTTPS.
-        letsencrypt.require_certbot()
-        letsencrypt.require_cert(env.host)
-        letsencrypt.require_cert(ctx['app'])
 
     # TODO: consider require.nginx.site
     upload_app = functools.partial(
