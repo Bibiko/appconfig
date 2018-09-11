@@ -59,3 +59,23 @@ As above, activate `appconfig`, change into the app's config directory and start
 For wholesale replacemement, confirm `Recreate database?`.
 
 Note: Deploying new data implies deploying new code.
+
+
+## Supported stacks
+
+### clld (Pyramid)
+
+TODO
+
+
+### Django
+
+Django apps are deployed in a way that is modeled closely after the deployment model for
+`clld` apps. In particular:
+- all Django apps must be installable python packages ...
+- ... providing an `paste.app_factory` entry point.
+- Apps are served by gunicorn.
+- Apps are controlled using supervisord.
+- Supervisor starts apps using the [`paste` option](http://docs.gunicorn.org/en/stable/run.html#paste), thus apps can access deployment specific configuration by reading the config file passed into the `paste.app_factory` function.
+
+
