@@ -78,4 +78,7 @@ Django apps are deployed in a way that is modeled closely after the deployment m
 - Apps are controlled using supervisord.
 - Supervisor starts apps using the [`paste` option](http://docs.gunicorn.org/en/stable/run.html#paste), thus apps can access deployment specific configuration by reading the config file passed into the `paste.app_factory` function.
 
-
+In addition to deployment specific config passed via `app.config` Django apps require
+a [`SECRET_KEY`](https://docs.djangoproject.com/en/2.1/ref/settings/#std:setting-SECRET_KEY) setting.
+Since one might not want to change this key with each deploy (which will invalidate existing sessions)
+it can optionally be recreated upo deployment and is written to a file `secret_key` in `app.home`.
