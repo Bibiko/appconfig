@@ -61,6 +61,21 @@ For wholesale replacemement, confirm `Recreate database?`.
 Note: Deploying new data implies deploying new code.
 
 
+## Renewing certificates
+
+We use certificates from [letsencrypt](https://letsencrypt.org/) to secure our
+apps and servers. Since these have a fixed validity of 90 days, we have to run our
+global renewal task every 30 days (since we don't know at which point in a 90 day interval a new app may have been deployed):
+
+```bash
+cd servers
+fab renew_certs
+```
+
+This task loops through all configured production hosts, and upon confirmation
+attempts to renew certificates for all production apps deployed on the host.
+
+
 ## Supported stacks
 
 ### clld (Pyramid)
