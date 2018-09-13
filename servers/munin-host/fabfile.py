@@ -16,7 +16,7 @@ def make_host_tree(hostnames):
 
 def make_app_watchlist(apps):
     return ('[http-monitor]\n    env.urls ' +
-            ' '.join('http://%s/_ping' % a.domain for a in apps))
+            ' '.join('https://%s/_ping' % a.domain for a in apps))
 
 
 @task
