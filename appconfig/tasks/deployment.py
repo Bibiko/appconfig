@@ -161,7 +161,8 @@ def deploy(app, with_blog=None, with_alembic=False):
         # Test and production instances are publicly accessible over HTTPS.
         letsencrypt.require_certbot()
         letsencrypt.require_cert(env.host)
-        letsencrypt.require_cert(app)
+        if env.environment == 'production':
+            letsencrypt.require_cert(app)
 
     ctx = template_context(app, workers=workers, with_blog=with_blog)
 
@@ -383,7 +384,7 @@ def require_nginx(ctx):
         auth=auth,
         admin_auth=admin_auth)
 
-    sudo_upload_template('nginx-default.conf', dest=str(app.nginx_default_site), host=env.host)
+    sudo_upload_template('nginx-default.conf', dest=str(app.nginx_default_site), env=env)
     if env.environment != 'test':
         upload_app(dest=str(app.nginx_site))
         nginx.enable(app.nginx_site.name)
