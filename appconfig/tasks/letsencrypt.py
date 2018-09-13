@@ -2,6 +2,7 @@ from fabric.api import sudo
 from fabtools import require
 
 from appconfig import APPS
+from appconfig.config import App
 
 
 def require_certbot():
@@ -11,9 +12,15 @@ def require_certbot():
 
 
 def require_cert(domain):
+    if isinstance(domain, App):
+        domains = domain.domain
+        if domain.with_www_subdomain:
+            domains += ',www.{0}'.format(domain.domain)
+    else:
+        domains = domain
     # If an App instance is passed, we lookup its domain attribute:
-    sudo('certbot --nginx -n -d {0} certonly --agree-tos --email {1}'.format(
-        getattr(domain, 'domain', domain), APPS.defaults['error_email']))
+    sudo('certbot --nginx -n -d {0} certonly --agree-tos --expand --email {1}'.format(
+        domains, APPS.defaults['error_email']))
 
 
 def delete(cert):

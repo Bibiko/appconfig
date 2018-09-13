@@ -109,6 +109,7 @@ class App(argparse.Namespace):
         'public': getboolean,
         'with_admin': getboolean,
         'with_blog': getboolean,
+        'with_www_subdomain': getboolean,
         'workers': int,
         'timeout': int,
         'deploy_duration': int,
