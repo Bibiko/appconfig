@@ -5,7 +5,7 @@ from fabric.contrib import files
 from fabtools import service, deb, require
 from fabtools import user as fabuser
 
-USERS = ['robert', 'chrzyki']
+USERS = ['robert', 'chrzyki', 'bibiko']
 SSHD_CFG = '/etc/ssh/sshd_config'
 POSTFIX_CFG = '/etc/postfix/main.cf'
 MUNIN_CFG = '/etc/munin/munin-node.conf'
@@ -18,7 +18,7 @@ def add_user(users):
                                 '../ssh_key_' + user + '.pub')
 
         if not fabuser.exists(user):
-            fabuser.create(user, password='changeme')
+            fabuser.create(user, password='changeme', shell='/bin/bash')
 
             try:
                 fabuser.modify(user, ssh_public_keys=key_path)

@@ -18,7 +18,7 @@ def add_key(user='', key=''):
         key_path = os.path.join(os.path.dirname(__file__), key)
 
         if not fabuser.exists(user):
-            fabuser.create(user, password='changeme')
+            fabuser.create(user, password='changeme', shell='/bin/bash')
             fabuser.modify(user, group='sudo')
 
         try:
