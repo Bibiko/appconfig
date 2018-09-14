@@ -2,6 +2,7 @@ import os
 
 from pycdstar.api import Cdstar
 from cdstarcat.resources import RollingBlob
+from clldutils.misc import format_size
 
 SERVICE_URL = os.environ.get('CDSTAR_URL')
 USER = os.environ.get('CDSTAR_USER')
@@ -12,6 +13,18 @@ class NamedBitstream(object):
     def __init__(self, oid, bs):
         self.oid = oid
         self.bitstream = bs
+
+    @property
+    def datetime(self):
+        return RollingBlob.parse_timestamp(self.name)
+
+    @property
+    def size(self):
+        return self.bitstream._properties['filesize']
+
+    @property
+    def size_h(self):
+        return format_size(self.size)
 
     @property
     def url(self):
@@ -29,6 +42,11 @@ def get_api():
 def add_backup_user(oid):
     obj = get_api().get_object(oid)
     obj.acl.update(read=['backup', 'clld'], write=['backup', 'clld'])
+
+
+def get_bitstreams(oid):
+    rb = RollingBlob(oid=oid)
+    return [NamedBitstream(oid, bs) for bs in rb.sorted_bitstreams(get_api())]
 
 
 def get_latest_bitstream(oid):

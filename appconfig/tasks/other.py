@@ -19,6 +19,7 @@ __all__ = [
     'copy_downloads', 'copy_rdfdump',
     'pip_freeze', 'load_db', 'dump_db',
     'upload_db_to_cdstar',
+    'list_dumps', 'remove_dumps',
 ]
 
 
@@ -44,6 +45,22 @@ def upload_db_to_cdstar(app, dbname=None):
     sql_dump = dump_db(app, dbname=dbname)
     cdstar.add_bitstream(app.dbdump, sql_dump)
     sql_dump.unlink()
+
+
+@task_app_from_environment
+def list_dumps(app):
+    if app.dbdump:
+        for i, bs in enumerate(cdstar.get_bitstreams(app.dbdump), start=1):
+            print('{0}\t{1}\t{2}\t{3}\t{4}'.format(i, bs.datetime.isoformat(), bs.name, bs.size_h, bs.size))
+
+
+@task_app_from_environment
+def remove_dumps(app, keep=10):
+    if app.dbdump:
+        for i, bs in enumerate(cdstar.get_bitstreams(app.dbdump), start=1):
+            if i > int(keep):
+                print('deleting dump {0}'.format(bs.name))
+                bs.bitstream.delete()
 
 
 @task_app_from_environment
