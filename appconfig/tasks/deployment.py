@@ -120,6 +120,8 @@ def uninstall(app):  # pragma: no cover
     """uninstall the app"""
     for path in (app.nginx_location, app.nginx_site, app.venv_dir):
         if exists(str(path)):
+            if path == app.nginx_site:
+                nginx.disable(app.nginx_site.name)
             files.remove(str(path), recursive=True, use_sudo=True)
 
     stop.execute_inner(app)
