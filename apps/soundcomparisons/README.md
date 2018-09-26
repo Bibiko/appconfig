@@ -31,3 +31,8 @@ making sure not to recreate the database.
    fab load_soundfile_catalog:production,/path/to/soundcomparisons-data/soundfiles/catalog.json
    ```
    to load the information about available soundfiles in the app DB.
+5. Run
+   ```bash
+   fab load_contributorimages_catalog:production,/path/to/soundcomparisons-data/imagefiles/catalog.json
+   ```
+   to load the information about available contributor and speaker images in the app DB.
