@@ -93,10 +93,60 @@ into
 from Words;
 """
 
+@task_app_from_environment
+def load_contributorimages_catalog(app, catalog):
+    """
+    load available contributor and speaker images into the db
+    Usage:
+    fab load_contributorimages_catalog:production,/path/to/soundcomparisons-data/imagefiles/catalog.json
+
+    :param catalog: Path to imagesfiles/catalog.json in a clone of the repos clld/soundcomparisons-data
+    """
+    with pathlib.Path(catalog).open() as fp:
+        cat = json.load(fp)
+
+    table = NamedTemporaryFile(suffix='.gz', delete=False)
+    with gzip.open(table.name, mode='wt', encoding='utf8') as tbl:
+        for oid, data in cat.items():
+            md = data['metadata']
+            if(md['name']):
+                tag = md['name']
+                fpp = ''
+                # if tag represents a FilePathPart_\d+ (speaker image[s])
+                # remove trailing indices and fill column 'filepathpart' with FilePathPart only
+                arr = re.split(r'_\d+$', tag)
+                if len(arr) == 2:
+                    fpp = arr[0]
+                tbl.write('\t'.join([
+                    tag,
+                    fpp,
+                    'https://cdstar.shh.mpg.de/bitstreams/{0}/{1}'.format(
+                        oid, md['path'])]) + '\n')
+
+    remote_path = '/tmp/contributorimages.txt.gz'
+    require.files.file(path=remote_path, source=table.name, use_sudo=True, mode='644')
+    os.remove(table.name)
+    sudo('gunzip -f {0}'.format(remote_path))
+    remote_path = remote_path[:-3]
+
+    tsql = """\
+CREATE OR REPLACE TABLE soundcomparisons.contributorimages (
+  tag varchar(255) NOT NULL,
+  filepathpart varchar(255) DEFAULT '',
+  url TEXT NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;"""
+    sql(app, tsql)
+    sudo('mysqlimport {0} {1}'.format(app.name, remote_path))
+
+    sudo('rm {0}'.format(remote_path))
+
+    sudo('systemctl restart php7.0-fpm.service')
+
 
 @task_app_from_environment
 def load_soundfile_catalog(app, catalog):
     """
+    load available soundfiles into the db
     Usage:
     fab load_soundfile_catalog:production,/path/to/soundcomparisons-data/soundfiles/catalog.json
 
