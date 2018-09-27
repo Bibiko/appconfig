@@ -201,9 +201,9 @@ def load_soundfile_catalog(app, catalog):
             pron, lex = int(pron), int(lex)
             suffix = ''
             if lex > 1:
-                suffix += '_lex{0}'.format(lex + 1)
+                suffix += '_lex{0}'.format(lex)
             if pron > 1:
-                suffix += '_pron{0}'.format(pron + 1)
+                suffix += '_pron{0}'.format(pron)
             urls = []
             for tt in tts:
                 stem = tt[0] + tt[1] + suffix
