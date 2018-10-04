@@ -57,7 +57,7 @@ def list_dumps(app):
 @task_app_from_environment
 def remove_dumps(app, keep=10):
     if app.dbdump:
-        for i, bs in enumerate([o for o in cdstar.get_bitstreams(app.dbdump) if o.name.startswith('db_dump_')]):
+        for i, bs in enumerate([o for o in cdstar.get_bitstreams(app.dbdump) if o.name.startswith('db_dump_')], start=1):
             if i > int(keep):
                 print('deleting dump {0}'.format(bs.name))
                 bs.bitstream.delete()
