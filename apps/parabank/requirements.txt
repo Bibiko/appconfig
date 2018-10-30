@@ -1,14 +1,15 @@
 alembic==0.9.7
-attrs==17.4.0
+attrs==18.2.0
+Babel==2.6.0
 beautifulsoup4==4.6.0
 bs4==0.0.1
 certifi==2017.11.5
 chardet==3.0.4
-clld==4.2.0
+clld==4.4.0
 clld-glottologfamily-plugin==2.1.0
 clld-phylogeny-plugin==1.1.0
 clldmpg==3.1.0
-clldutils==2.0.1
+clldutils==2.5.1
 colander==1.4
 colorlog==3.1.0
 configparser==3.5.0
@@ -27,7 +28,7 @@ MarkupSafe==1.0
 nameparser==0.5.6
 newick==0.8.0
 paginate==0.5.6
--e git+https://github.com/clld/parabank.git@b430c2ff78ff4df09bb90623ea7ea2a9092257c3#egg=parabank
+-e git+https://github.com/clld/parabank.git@e047c36ee76dad502ee798b01f67141f1ee1b1bd#egg=parabank
 PasteDeploy==1.5.2
 pathlib2==2.3.0
 plaster==1.0
