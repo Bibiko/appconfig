@@ -1,17 +1,17 @@
 alembic==0.9.7
-attrs==17.4.0
+attrs==18.2.0
 Babel==2.6.0
 certifi==2018.1.18
 chardet==3.0.4
-clld==4.2.2
-clld-phylogeny-plugin==1.0.1
+clld==4.4.0
+clld-phylogeny-plugin==1.3.0
 clldmpg==3.3.1
-clldutils==2.0.1
+clldutils==2.5.1
 colander==1.4
 colorlog==3.1.2
 configparser==3.5.0
 csvw==1.0
--e git+https://github.com/clld/dplace2.git@87e7729072976fb6d70974af9aeea8c63450fee8#egg=dplace2
+-e git+https://github.com/clld/dplace2.git@1a9a90ac898d32ac977743a8627d2c239a596d08#egg=dplace2
 ete3==3.1.1
 feedparser==5.2.1
 gunicorn==19.7.1

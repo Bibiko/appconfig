@@ -42,7 +42,7 @@ rdflib==4.2.2
 repoze.lru==0.7
 requests==2.18.4
 rfc3986==1.1.0
--e git+https://github.com/clld/sails.git@09f20033a02d452c5460320111f473c3ded35adf#egg=sails
+-e git+https://github.com/clld/sails.git@d1194dddabf2263ef387b24b11e62688b156467e#egg=sails
 six==1.11.0
 SQLAlchemy==1.2.1
 tabulate==0.8.2

@@ -13,7 +13,7 @@ colorlog==3.1.2
 configparser==3.5.0
 csvw==1.0
 feedparser==5.2.1
--e git+https://github.com/clld/glottolog3.git@87c2b209cbbf084eaaefd6be1e87bbd091d61781#egg=glottolog3
+-e git+https://github.com/clld/glottolog3.git@3c865f65b63350ac61754319402327e7a08ce9cb#egg=glottolog3
 gunicorn==19.7.1
 hupper==1.0
 idna==2.6
@@ -69,3 +69,5 @@ yuicompressor==2.4.8
 zope.deprecation==4.3.0
 zope.interface==4.4.3
 zope.sqlalchemy==0.7.7
+[33mYou are using pip version 9.0.1, however version 18.1 is available.
+You should consider upgrading via the 'pip install --upgrade pip' command.[0m

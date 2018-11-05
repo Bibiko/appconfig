@@ -5,7 +5,7 @@ beautifulsoup4==4.6.0
 bs4==0.0.1
 certifi==2018.1.18
 chardet==3.0.4
--e git+https://github.com/clld/clics.git@f7168e06b8cb4dbafbb922ad6ff83d3820a3c3b4#egg=clics
+-e git+https://github.com/clld/clics.git@6ac0fe8a1a76c400ef9e6994c1ea2f4b7c8fb49b#egg=clics
 clld==4.3.0
 clld-glottologfamily-plugin==2.1.0
 clldmpg==3.2.0

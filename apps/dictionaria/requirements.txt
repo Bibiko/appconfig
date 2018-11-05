@@ -16,7 +16,7 @@ colander==1.4
 colorlog==3.1.0
 configparser==3.5.0
 csvw==1.0
--e git+https://github.com/clld/dictionaria.git@cb847c313f66f5fc7964d8631f289f9721664d9d#egg=dictionaria
+-e git+https://github.com/clld/dictionaria.git@55a61bcd1791ede80ffa8807ca3c0a9eae40ac3e#egg=dictionaria
 docopt==0.6.2
 feedparser==5.2.1
 gunicorn==19.7.1
