@@ -16,7 +16,7 @@ from fabric.contrib.console import confirm
 from fabtools import (
     require, files, python, postgres, nginx, system, service, supervisor, user, deb)
 
-from .. import APPS
+from .. import APPS, APPS_DIR
 from .. import PKG_DIR
 from .. import helpers
 from .. import cdstar
@@ -25,7 +25,7 @@ from . import letsencrypt
 
 from . import task_app_from_environment
 
-__all__ = ['deploy', 'start', 'stop', 'uninstall', 'sudo_upload_template']
+__all__ = ['deploy', 'start', 'stop', 'uninstall', 'sudo_upload_template', 'upgrade']
 
 PLATFORM = platform.system().lower()
 PG_COLLKEY_DIR = PKG_DIR / 'pg_collkey-v0.5'
@@ -82,6 +82,47 @@ def sudo_upload_template(template,
         mode=mode,
         chown=True,
         user=user_own)
+
+
+def pip_freeze(app, packages=None):
+    with python.virtualenv(str(app.venv_dir)):
+        stdout = run('pip freeze', combine_stderr=False)
+
+    def iterlines(lines):
+        for line in lines:
+            if ('You are' in line) or ('You should' in line):
+                continue
+            if packages and line.partition('==')[0] in packages:
+                print(line)
+            yield line + '\n'
+
+    target = APPS_DIR / app.name / 'requirements.txt'
+    with target.open('w', encoding='ascii') as fp:
+        fp.writelines(iterlines(stdout.splitlines()))
+
+
+def check(app):
+    time.sleep(5)
+    res = run('curl http://localhost:%s/_ping' % app.port)
+    assert json.loads(res)['status'] == 'ok'
+
+    if env.environment == 'production':
+        if app.public:
+            # Production apps are served over HTTPS. If they are public, we can check the complete
+            # stack:
+            res_https = run('curl https://%s/_ping' % (app.domain))
+            assert json.loads(res_https)['status'] == 'ok'
+
+
+@task_app_from_environment
+def upgrade(app, **packages):
+    with python.virtualenv(str(app.venv_dir)):
+        require.python.packages(
+            ['{0}=={1}'.format(*pkg) for pkg in packages.items()], use_sudo=True)
+    pip_freeze(app, packages)
+    stop.execute_inner(app)
+    start.execute_inner(app)
+    check(app)
 
 
 @task_app_from_environment
@@ -230,19 +271,9 @@ def deploy(app, with_blog=None, with_alembic=False):
         alembic_upgrade_head(app, ctx)
 
     start.execute_inner(app)
-
-    time.sleep(5)
-    res = run('curl http://localhost:%s/_ping' % app.port)
-    assert json.loads(res)['status'] == 'ok'
-
+    check(app)
     if env.environment == 'production':
         systemd.enable(app, pathlib.Path(os.getcwd()) / 'systemd')
-
-        if app.public:
-            # Production apps are served over HTTPS. If they are public, we can check the complete
-            # stack:
-            res_https = run('curl https://%s/_ping' % (app.domain))
-            assert json.loads(res_https)['status'] == 'ok'
 
 
 def require_php(app):  # pragma: no cover
