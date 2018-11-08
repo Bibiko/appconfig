@@ -2,28 +2,15 @@ from fabric.api import run, task, sudo, settings, env
 from fabric.tasks import execute
 from fabric.contrib.console import confirm
 from fabric.contrib.files import exists
-from fabtools import python
 from dateutil.parser import parse
 
-from appconfig import APPS_DIR, APPS
+from appconfig import APPS
 from appconfig.config import App
+from appconfig.tasks.deployment import pip_freeze
 
 env.hosts = APPS.hostnames
 ACC = []  # A global accumulator to store results across tasks
 
-
-def pip_freeze(app):
-    with python.virtualenv(str(app.venv_dir)):
-        stdout = run('pip freeze', combine_stderr=False)
-
-    def iterlines(lines):
-        for line in lines:
-            yield line + '\n'
-
-    target = APPS_DIR / app.name / 'requirements.txt'
-
-    with target.open('w', encoding='ascii') as fp:
-        fp.writelines(iterlines(stdout.splitlines()))
 
 from appconfig.tasks import letsencrypt
 
