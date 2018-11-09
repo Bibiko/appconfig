@@ -55,14 +55,22 @@ def mocked_deployment(mocker):
 
 def test_deploy_public(mocker, config, mocked_deployment):
     mocker.patch('appconfig.tasks.APP', config['testapppublic'])
-    tasks.deploy('production')
+
+    with pytest.raises(FileNotFoundError):
+        tasks.deploy('production')
+
     assert not mocked_deployment.getpwd.called
 
 
 def test_deploy(mocker, config, mocked_deployment):
     mocker.patch('appconfig.tasks.APP', config['testapp'])
-    tasks.deploy('production')
+
+    with pytest.raises(FileNotFoundError):
+        tasks.deploy('production')
+
     assert mocked_deployment.getpwd.call_count == 2
-    tasks.deploy('production', with_alembic=True)
-    tasks.deploy('test')
-    tasks.deploy('test', with_alembic=True)
+
+    with pytest.raises(FileNotFoundError):
+        tasks.deploy('production', with_alembic=True)
+        tasks.deploy('test')
+        tasks.deploy('test', with_alembic=True)
