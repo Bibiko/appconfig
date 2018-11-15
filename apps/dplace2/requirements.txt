@@ -11,7 +11,7 @@ colander==1.4
 colorlog==3.1.2
 configparser==3.5.0
 csvw==1.0
--e git+https://github.com/clld/dplace2.git@59f04067b526d5e34baecb4439a92635186c3bc8#egg=dplace2
+-e git+https://github.com/clld/dplace2.git@128a0698b2912a62c94227df93b727bb220f9892#egg=dplace2
 ete3==3.1.1
 feedparser==5.2.1
 gunicorn==19.7.1
