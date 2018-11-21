@@ -1,21 +1,22 @@
 alembic==0.9.7
-attrs==17.4.0
+attrs==18.2.0
+Babel==2.6.0
 beautifulsoup4==4.6.0
 bs4==0.0.1
 certifi==2018.1.18
 chardet==3.0.4
-clld==4.2.0
+clld==4.4.1
 clld-glottologfamily-plugin==2.1.0
 clld-phylogeny-plugin==1.1.0
 clldmpg==3.1.0
-clldutils==2.0.1
+clldutils==2.5.2
 colander==1.4
 colorlog==3.1.0
 configparser==3.5.0
 csvw==1.0
 ete3==3.1.1
 feedparser==5.2.1
--e git+https://github.com/clld/grambank.git@2b82b45ce83c4a58a61d3accbef4560cff01aad2#egg=grambank
+-e git+https://github.com/clld/grambank.git@6bac0144664246981259589a173d04b64f92cdb3#egg=grambank
 gunicorn==19.7.1
 hupper==1.0
 idna==2.6

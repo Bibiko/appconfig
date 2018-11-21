@@ -270,6 +270,8 @@ def deploy(app, with_blog=None, with_alembic=False):
         stop.execute_inner(app, maintenance_hours=app.deploy_duration)
         alembic_upgrade_head(app, ctx)
 
+    pip_freeze(app)
+
     start.execute_inner(app)
     check(app)
     if env.environment == 'production':
