@@ -16,7 +16,7 @@ configparser==3.5.0
 csvw==1.0
 ete3==3.1.1
 feedparser==5.2.1
--e git+https://github.com/clld/grambank.git@6bac0144664246981259589a173d04b64f92cdb3#egg=grambank
+-e git+https://github.com/clld/grambank.git@c08f514fd8d15e601c00fd2e6c4798f069273e5f#egg=grambank
 gunicorn==19.7.1
 hupper==1.0
 idna==2.6

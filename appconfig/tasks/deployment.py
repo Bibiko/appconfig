@@ -189,6 +189,18 @@ def deploy(app, with_blog=None, with_alembic=False):
     if lsb_codename != 'xenial':
         raise ValueError('unsupported platform: %s' % lsb_codename)
 
+    # See whether the local appconfig clone is up-to-date with the remot master:
+    remote_repo = local('git ls-remote git@github.com:shh-dlce/appconfig.git HEAD | awk \'{ print $1}\'')
+    local_clone = local('git rev-parse HEAD')
+
+    if remote_repo != local_clone:
+        if confirm('Local appconfig clone is not up-to-date '
+                   'with remote master, continue?', default=False):
+            print("Continuing deployment.")
+        else:
+            print("Deployment aborted.")
+            return
+
     require.deb.packages(getattr(app, 'require_deb_%s' % lsb_codename) + app.require_deb)
     require.users.user(app.name, create_home=True, shell='/bin/bash')
     require.directory(str(app.www_dir), use_sudo=True)
