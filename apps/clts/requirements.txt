@@ -1,11 +1,11 @@
 alembic==0.9.7
-attrs==17.4.0
+attrs==18.2.0
 certifi==2018.1.18
 chardet==3.0.4
 clld==4.0.2
 clldmpg==3.1.1
 clldutils==2.0.1
--e git+https://github.com/clld/clts.git@b258682e90f7a60174f02f9d665095c6832f2a27#egg=CLTS
+-e git+https://github.com/clld/clts.git@92e177ecd6021ae68f4d4d90d2bf76e8720864ba#egg=CLTS
 colander==1.4
 colorlog==3.1.2
 configparser==3.5.0
@@ -30,6 +30,7 @@ psycopg2==2.7.3.2
 purl==1.3.1
 pybtex==0.21
 pycldf==1.0.10
+pyclts==1.1.1
 pyparsing==2.2.0
 pyramid==1.9.1
 pyramid-exclog==1.0
