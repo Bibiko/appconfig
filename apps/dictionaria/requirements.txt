@@ -6,7 +6,7 @@ beautifulsoup4==4.6.0
 bibtexparser==0.6.2
 bs4==0.0.1
 cdstarcat==0.2.1
-certifi==2017.11.5
+certifi==2018.1.18
 chardet==3.0.4
 clld==4.2.2
 clld-glottologfamily-plugin==2.1.0
@@ -16,7 +16,7 @@ colander==1.4
 colorlog==3.1.0
 configparser==3.5.0
 csvw==1.0
--e git+https://github.com/clld/dictionaria.git@98472d942beca4a9383bb59feb17553a25acc928#egg=dictionaria
+-e git+https://github.com/clld/dictionaria.git@55a61bcd1791ede80ffa8807ca3c0a9eae40ac3e#egg=dictionaria
 docopt==0.6.2
 feedparser==5.2.1
 gunicorn==19.7.1
@@ -55,7 +55,7 @@ pytz==2017.3
 PyYAML==3.12
 rdflib==4.2.2
 repoze.lru==0.7
-requests==2.20.0
+requests==2.21.0
 rfc3986==1.1.0
 six==1.11.0
 SQLAlchemy==1.2.1
@@ -66,7 +66,7 @@ translationstring==1.3
 transliterate==1.10
 Unidecode==1.0.22
 uritemplate==3.0.0
-urllib3==1.22
+urllib3==1.24.1
 venusian==1.1.0
 waitress==1.1.0
 webassets==0.12.1
