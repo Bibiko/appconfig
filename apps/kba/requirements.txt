@@ -16,7 +16,7 @@ hupper==1.4.1
 idna==2.7
 iso8601==0.1.12
 isodate==0.6.0
--e git+https://github.com/clld/kba.git@aa539e81acbc4180896d4b6317c260baadc42885#egg=kba
+-e git+https://github.com/clld/kba.git@cb7b3d62cc8f622bce24483bbdca5aa0a45c3190#egg=kba
 latexcodec==1.0.5
 Mako==1.0.7
 MarkupSafe==1.1.0
