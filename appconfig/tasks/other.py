@@ -19,7 +19,7 @@ __all__ = [
     'copy_downloads', 'copy_rdfdump',
     'pip_freeze', 'load_db', 'dump_db',
     'upload_db_to_cdstar',
-    'list_dumps', 'remove_dumps',
+    'list_dumps', 'remove_dumps', 'remove_single_dump',
 ]
 
 
@@ -57,10 +57,27 @@ def list_dumps(app):
 @task_app_from_environment
 def remove_dumps(app, keep=10):
     if app.dbdump:
-        for i, bs in enumerate(cdstar.get_bitstreams(app.dbdump), start=1):
+        for i, bs in enumerate([o for o in cdstar.get_bitstreams(app.dbdump) if o.name.startswith('db_dump_')], start=1):
             if i > int(keep):
                 print('deleting dump {0}'.format(bs.name))
                 bs.bitstream.delete()
+
+@task_app_from_environment
+def remove_single_dump(app, bsname):
+    """
+    deletes the (oldest - should not occur) dump specified by its name passed as first argument
+    Usage:
+    fab remove_single_dump:production,bitstream_name
+    """
+    success = False
+    if app.dbdump:
+        for i, bs in enumerate([o for o in cdstar.get_bitstreams(app.dbdump) if o.name == bsname]):
+            print('deleting dump {0}'.format(bs.name))
+            bs.bitstream.delete()
+            success = True
+            break
+    if not success:
+        print('no dump named {0} found'.format(bsname))
 
 
 @task_app_from_environment
