@@ -30,7 +30,7 @@ setup(
         'dev': ['flake8'],
         'test': [
             'mock',
-            'pytest>=3.3',
+            'pytest>=3.6',
             'pytest-mock',
             'pytest-cov',
         ],
