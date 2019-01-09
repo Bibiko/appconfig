@@ -18,6 +18,7 @@ setup(
     include_package_data=True,
     zip_safe=False,
     install_requires=[
+        'attrs>=18.1.0',
         'Fabric3>=1.11',
         'fabtools-python>=0.19.7',
         'python-dateutil',
@@ -30,7 +31,7 @@ setup(
         'dev': ['flake8'],
         'test': [
             'mock',
-            'pytest>=3.3',
+            'pytest>=3.6',
             'pytest-mock',
             'pytest-cov',
         ],
