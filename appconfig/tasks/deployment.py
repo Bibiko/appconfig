@@ -170,6 +170,11 @@ def uninstall(app):  # pragma: no cover
         if app.stack != 'soundcomparisons':
             sudo('dropdb --if-exists %s' % app.name, user='postgres')
         else:
+            path = '/etc/php/7.0/fpm/pool.d/www' + app.name + '.conf'
+
+            if exists(path):
+                files.remove(path, recursive=False, use_sudo=True)
+
             sudo('echo "drop database {0};" | mysql'.format(app.name))
         sudo('userdel -rf %s' % app.name)
 
