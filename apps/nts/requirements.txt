@@ -9,7 +9,7 @@ clld==4.1.2
 clld-glottologfamily-plugin==2.1.0
 clldmpg==3.1.0
 clldutils==2.0.1
-colander==1.4
+colander==1.7.0
 colorlog==3.1.0
 configparser==3.5.0
 csvw==1.0

@@ -1,5 +1,5 @@
 alembic==0.9.6
--e git+https://github.com/clld/apics.git@23fb0b86b00af99d38efdc677851cbe5130be383#egg=apics
+-e git+https://github.com/clld/apics.git@74c1f02ace2f22ab0c8403d4151ef5a0e2e3cbd2#egg=apics
 attrs==17.4.0
 Babel==2.5.3
 beautifulsoup4==4.6.0
@@ -8,7 +8,7 @@ chardet==3.0.4
 clld==4.3.0
 clldmpg==3.3.1
 clldutils==2.4.0
-colander==1.4
+colander==1.7.0
 colorlog==3.1.0
 configparser==3.5.0
 csvw==1.0

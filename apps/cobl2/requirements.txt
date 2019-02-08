@@ -9,7 +9,7 @@ clld-phylogeny-plugin==1.0.1
 clldmpg==3.2.0
 clldutils==2.0.1
 -e git+https://github.com/clld/cobl2.git@2659c5b074a20fc9efd0e6c4f5ecfaba8cbff1d8#egg=cobl2
-colander==1.4
+colander==1.7.0
 colorlog==3.1.2
 configparser==3.5.0
 csvw==1.0

@@ -9,7 +9,7 @@ clld-glottologfamily-plugin==2.1.0
 clld-phylogeny-plugin==1.1.0
 clldmpg==3.2.0
 clldutils==2.1.0
-colander==1.4
+colander==1.7.0
 colorlog==3.1.4
 configparser==3.5.0
 csvw==1.1.0

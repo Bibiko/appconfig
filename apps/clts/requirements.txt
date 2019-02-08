@@ -6,7 +6,7 @@ clld==4.0.2
 clldmpg==3.1.1
 clldutils==2.0.1
 -e git+https://github.com/clld/clts.git@92e177ecd6021ae68f4d4d90d2bf76e8720864ba#egg=CLTS
-colander==1.4
+colander==1.7.0
 colorlog==3.1.2
 configparser==3.5.0
 csvw==1.0

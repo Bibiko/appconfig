@@ -8,7 +8,7 @@ chardet==3.0.4
 clld==4.2.2
 clldmpg==3.3.1
 clldutils==2.0.1
-colander==1.4
+colander==1.7.0
 colorlog==3.1.0
 configparser==3.5.0
 csvw==1.0
