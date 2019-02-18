@@ -1,5 +1,5 @@
 alembic==0.9.6
--e git+https://github.com/clld/apics.git@bc855bc4f8be5dec739271a748b22f187f1fdcf2#egg=apics
+-e git+https://github.com/clld/apics.git@988f8073e525ec268e5a9346155cc14e192e3c3f#egg=apics
 attrs==17.4.0
 Babel==2.5.3
 beautifulsoup4==4.6.0
