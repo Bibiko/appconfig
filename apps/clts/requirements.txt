@@ -4,8 +4,8 @@ certifi==2018.1.18
 chardet==3.0.4
 clld==4.0.2
 clldmpg==3.1.1
-clldutils==2.0.1
--e git+https://github.com/clld/clts.git@92e177ecd6021ae68f4d4d90d2bf76e8720864ba#egg=CLTS
+clldutils==2.7.0
+-e git+https://github.com/clld/clts.git@f11fd3f0f39079a1449bfac91e66129e6b6a9532#egg=CLTS
 colander==1.7.0
 colorlog==3.1.2
 configparser==3.5.0
