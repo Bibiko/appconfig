@@ -54,7 +54,7 @@ waitress==1.1.0
 webassets==0.12.1
 WebHelpers2==2.0
 WebOb==1.8.0rc1
--e git+https://github.com/clld/wold2.git@e732186bfb1b331720a76857dbaed6a8cb9883ec#egg=wold2
+-e git+https://github.com/clld/wold2.git@78df15869ccf1eb23b9d6009cead07066c4fe797#egg=wold2
 xlwt==1.3.0
 yuicompressor==2.4.8
 zope.deprecation==4.3.0
