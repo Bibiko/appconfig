@@ -1,5 +1,5 @@
 alembic==0.9.7
-attrs==17.4.0
+attrs==19.1.0
 Babel==2.5.3
 beautifulsoup4==4.6.0
 bs4==0.0.1
@@ -7,13 +7,13 @@ certifi==2018.1.18
 chardet==3.0.4
 clld==4.2.2
 clldmpg==3.3.1
-clldutils==2.0.1
+clldutils==2.7.0
 colander==1.7.0
 colorlog==3.1.2
 configparser==3.5.0
 csvw==1.0
 feedparser==5.2.1
--e git+https://github.com/clld/glottolog3.git@e2ec284c9de6c6bb149dcde09f00f14e8b2688fe#egg=glottolog3
+-e git+https://github.com/clld/glottolog3.git@518217611881adef1ff5bb83ccf273ef0043c8ab#egg=glottolog3
 gunicorn==19.7.1
 hupper==1.0
 idna==2.6
