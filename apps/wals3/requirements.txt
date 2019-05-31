@@ -49,7 +49,7 @@ tabulate==0.8.2
 transaction==2.1.2
 translationstring==1.3
 uritemplate==3.0.0
-urllib3==1.24.1
+urllib3==1.24.2
 venusian==1.1.0
 waitress==1.1.0
 -e git+https://github.com/clld/wals3.git@205055359aea6aed3185c2231dc6596b2081cd76#egg=wals3
