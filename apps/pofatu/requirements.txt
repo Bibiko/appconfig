@@ -25,7 +25,7 @@ PasteDeploy==1.5.2
 pathlib2==2.3.0
 plaster==1.0
 plaster-pastedeploy==0.4.2
--e git+https://github.com/clld/pofatu.git@f72321f1456b1025a2820dffd0dcb63bc411d290#egg=pofatu
+-e git+https://github.com/clld/pofatu.git@fd95ed7d88c1ef170f799c8491bde7aa642549f1#egg=pofatu
 psycopg2==2.7.4
 purl==1.3.1
 pybtex==0.21
