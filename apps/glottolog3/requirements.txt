@@ -13,7 +13,7 @@ colorlog==3.1.2
 configparser==3.5.0
 csvw==1.5.5
 feedparser==5.2.1
--e git+https://github.com/clld/glottolog3.git@6f4f15531b3b8a04eb1eea21a7b2b3604f4ee518#egg=glottolog3
+-e git+https://github.com/clld/glottolog3.git@61cfa64d64d15309b3895cbcbb7f709fce53726a#egg=glottolog3
 gunicorn==19.7.1
 hupper==1.6.1
 idna==2.6
