@@ -13,7 +13,7 @@ colorlog==3.1.2
 configparser==3.5.0
 csvw==1.5.5
 feedparser==5.2.1
--e git+https://github.com/clld/glottolog3.git@61cfa64d64d15309b3895cbcbb7f709fce53726a#egg=glottolog3
+-e git+https://github.com/clld/glottolog3.git@28886057c8b78a717177109e7d1f20d5f440a8c1#egg=glottolog3
 gunicorn==19.7.1
 hupper==1.6.1
 idna==2.6
@@ -32,10 +32,10 @@ plaster==1.0
 plaster-pastedeploy==0.4.2
 psycopg2==2.7.3.2
 purl==1.3.1
-pybtex==0.21
-pycldf==1.6.3
-pycountry==17.9.23
-pyglottolog==1.1.0
+pybtex==0.22.2
+pycldf==1.6.4
+pycountry==18.12.8
+pyglottolog==2.1.0
 pyparsing==2.2.0
 pyramid==1.10.4
 pyramid-exclog==1.0
@@ -53,6 +53,7 @@ six==1.11.0
 SQLAlchemy==1.3.4
 tabulate==0.8.2
 termcolor==1.1.0
+tqdm==4.32.2
 transaction==2.1.2
 translationstring==1.3
 Unidecode==1.0.22
