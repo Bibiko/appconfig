@@ -11,7 +11,7 @@ clldmpg==3.3.1
 clldutils==2.8.0
 colander==1.7.0
 colorlog==3.1.0
--e git+https://github.com/clld/concepticon.git@cdd22649d6c19bb6a8e8c804aac9faff1e30137a#egg=concepticon
+-e git+https://github.com/clld/concepticon.git@67196be145e8351e1fa49edf908dd08cabc3c48f#egg=concepticon
 configparser==3.5.0
 csvw==1.5.5
 docopt==0.6.2

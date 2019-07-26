@@ -460,7 +460,7 @@ def http_auth(app):
     }
     if not (app.public and env.environment == 'production'):
         # Non-public or test sites:
-        pwds[app.name] = helpers.getpwd(app.name)
+        pwds[app.name] = helpers.getpwd(app.name, accept_empty=True)
     if app.with_admin:
         pwds['admin'] = helpers.getpwd('admin')
 

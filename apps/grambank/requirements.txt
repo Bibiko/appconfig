@@ -6,7 +6,7 @@ bs4==0.0.1
 certifi==2018.1.18
 chardet==3.0.4
 clld==4.7.0
-clld-glottologfamily-plugin==2.1.0
+clld-glottologfamily-plugin==3.0.0
 clld-phylogeny-plugin==1.1.0
 clldmpg==3.1.0
 clldutils==2.8.0
@@ -16,7 +16,7 @@ configparser==3.5.0
 csvw==1.5.5
 ete3==3.1.1
 feedparser==5.2.1
--e git+https://github.com/clld/grambank.git@845c2cd075d54194986595e1d330eb043889e060#egg=grambank
+-e git+https://github.com/clld/grambank.git@21abce0dcb6f23560eec5b7dc7b0571f4c9f911f#egg=grambank
 gunicorn==19.7.1
 hupper==1.6.1
 idna==2.6

@@ -10,10 +10,12 @@ import pytz
 __all__ = ['caller_dirname', 'duplicates', 'strfnow']
 
 
-def getpwd(user):
+def getpwd(user, accept_empty=False):
     pwd = None
     while not pwd:
         pwd = getpass.getpass(prompt='HTTP Basic Auth password for user %s: ' % user)
+        if accept_empty:
+            return pwd or None
     return pwd
 
 
