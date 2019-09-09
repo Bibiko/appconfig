@@ -1,16 +1,16 @@
 alembic==0.9.9
--e git+https://github.com/clld/amsd.git@07c504794d17624c4401330ee7577400e30c1f38#egg=amsd
+-e git+https://github.com/clld/amsd.git@5f8c0c7b564933a930ce3f5467c2e89b9446bde9#egg=amsd
 attrs==18.1.0
 Babel==2.6.0
 certifi==2018.4.16
 chardet==3.0.4
-clld==4.2.2
+clld==4.7.1
 clldmpg==3.3.1
-clldutils==2.2.0
+clldutils==2.8.0
 colander==1.7.0
 colorlog==3.1.4
 configparser==3.5.0
-csvw==1.2.0
+csvw==1.5.6
 feedparser==5.2.1
 gunicorn==19.8.1
 hupper==1.3
@@ -28,9 +28,9 @@ plaster-pastedeploy==0.5
 psycopg2==2.7.5
 purl==1.4
 pybtex==0.21
-pycldf==1.4.1
+pycldf==1.6.4
 pyparsing==2.2.0
-pyramid==1.9.2
+pyramid==1.10
 pyramid-exclog==1.0
 pyramid-mako==1.0.2
 pyramid-tm==2.2
@@ -53,7 +53,7 @@ venusian==1.1.0
 waitress==1.1.0
 webassets==0.12.1
 WebHelpers2==2.0
-WebOb==1.8.2
+WebOb==1.8.5
 xlwt==1.3.0
 yuicompressor==2.4.8
 zope.deprecation==4.3.0
