@@ -4,9 +4,9 @@ Babel==2.5.3
 beautifulsoup4==4.6.0
 certifi==2018.1.18
 chardet==3.0.4
-clld==4.7.0
-clldmpg==3.3.1
-clldutils==2.8.0
+clld==5.0.1
+clldmpg==3.4.0
+clldutils==3.1.2
 colander==1.7.0
 colorlog==3.1.0
 configparser==3.5.0
@@ -52,7 +52,7 @@ uritemplate==3.0.0
 urllib3==1.24.2
 venusian==1.1.0
 waitress==1.1.0
--e git+https://github.com/clld/wals3.git@205055359aea6aed3185c2231dc6596b2081cd76#egg=wals3
+-e git+https://github.com/clld/wals3.git@93697ac488bbacdea213b9486d56fea2ac3b5f31#egg=wals3
 webassets==0.12.1
 WebHelpers2==2.0
 WebOb==1.8.5
