@@ -12,7 +12,7 @@ colander==1.7.0
 colorlog==3.1.0
 configparser==3.5.0
 csvw==1.5.5
--e git+https://github.com/clld/dogonlanguages.git@2d897e2e5df1876f8c7bd32fabee9db65515dac1#egg=dogonlanguages
+-e git+https://github.com/clld/dogonlanguages.git@8c5d3108849c1ad17fcd072107565d3ef6cd09c6#egg=dogonlanguages
 feedparser==5.2.1
 fuzzywuzzy==0.16.0
 gunicorn==19.7.1
