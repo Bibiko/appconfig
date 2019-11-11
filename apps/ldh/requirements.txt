@@ -20,7 +20,7 @@ idna==2.8
 iso8601==0.1.12
 isodate==0.6.0
 latexcodec==1.0.7
--e git+https://github.com/clld/ldh.git@eacd1733850bca70c7795bfc2f248a4b0c2b89e3#egg=ldh
+-e git+https://github.com/clld/ldh.git@611c8a4c0496884800a8ff5de6dfac2c6e35e49c#egg=ldh
 Mako==1.0.14
 Markdown==3.1.1
 MarkupSafe==1.1.1
