@@ -15,6 +15,7 @@ from fabric.contrib.files import exists, comment, sed
 from fabric.contrib.console import confirm
 from fabtools import (
     require, files, python, postgres, nginx, system, service, supervisor, user, deb)
+from clldutils import misc
 
 from .. import APPS, APPS_DIR
 from .. import PKG_DIR
@@ -25,7 +26,7 @@ from . import letsencrypt
 
 from . import task_app_from_environment
 
-__all__ = ['deploy', 'start', 'stop', 'uninstall', 'sudo_upload_template', 'upgrade']
+__all__ = ['deploy', 'start', 'stop', 'uninstall', 'sudo_upload_template', 'upgrade', 'upload_dump']
 
 PLATFORM = platform.system().lower()
 PG_COLLKEY_DIR = PKG_DIR / 'pg_collkey-v0.5'
@@ -477,7 +478,12 @@ def http_auth(app):
     return auth if pwds[app.name] else '', auth
 
 
-def upload_sqldump(app):
+@task_app_from_environment
+def upload_dump(app):
+    upload_sqldump(app, load=False)
+
+
+def upload_sqldump(app, load=True):
     if app.dbdump:
         if re.match('http(s)?://', app.dbdump):
             fname = 'dump.sql.gz'
@@ -496,22 +502,25 @@ def upload_sqldump(app):
 
         db_user = '-U postgres ' if PLATFORM == 'windows' else ''
         local('pg_dump %s--no-owner --no-acl -Z 9 -f %s %s' % (db_user, sqldump, db_name))
-
+        print('uploading {0} [{1}]'.format(sqldump, misc.format_size(sqldump.stat().st_size)))
         require.file(str(target), source=str(sqldump))
         sqldump.unlink()
 
-    if app.stack == 'soundcomparisons':
-        sudo('echo "drop database {0};" | mysql'.format(app.name))
-        require.mysql.database(app.name, owner=app.name)
-        sudo('gunzip -c {0} | mysql -u {1} --password={1} -D {1}'.format(target, app.name), user=app.name)
-    else:
-        # TODO: assert supervisor.process_status(app.name) != 'RUNNING'
-        if postgres.database_exists(app.name):
-            require_postgres(app, drop=True)
+    if load:
+        if app.stack == 'soundcomparisons':
+            sudo('echo "drop database {0};" | mysql'.format(app.name))
+            require.mysql.database(app.name, owner=app.name)
+            sudo('gunzip -c {0} | mysql -u {1} --password={1} -D {1}'.format(target, app.name), user=app.name)
+        else:
+            # TODO: assert supervisor.process_status(app.name) != 'RUNNING'
+            if postgres.database_exists(app.name):
+                require_postgres(app, drop=True)
 
-        sudo('gunzip -c %s | psql -d %s' % (target, app.name), user=app.name)
-        sudo('vacuumdb -zf %s' % app.name, user='postgres')
-    files.remove(str(target))
+            sudo('gunzip -c %s | psql -d %s' % (target, app.name), user=app.name)
+            sudo('vacuumdb -zf %s' % app.name, user='postgres')
+        files.remove(str(target))
+    else:
+        print(str(target))
 
 
 def alembic_upgrade_head(app, ctx):

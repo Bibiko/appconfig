@@ -19,6 +19,7 @@ setup(
     zip_safe=False,
     install_requires=[
         'attrs>=18.1.0',
+        'clldutils',
         'Fabric3>=1.11',
         'fabtools-python>=0.19.7',
         'python-dateutil',
