@@ -47,6 +47,31 @@ $ fab -H vbox deploy:staging
 ```
 Answer the prompts `Recreate database?` and `Upgrade database?` in the negative.
 
+#### Troubleshooting
+
+Sometimes an app won't start properly after updating the code. By far the most common cause for this
+are changes in requirements, leading to package version conflicts. To resolve such problems:
+- Log into the the server and change to a superuser account.
+- Comment out the lines in `/home/<app>/config.ini` specifying the options `workers` and `proc_name` for
+  the app server. (These options are `gunicorn`-specific and won't be understood by `waitress` - which we
+  want to use for debugging.)
+- Start the app with `waitress` running
+  ```shell script
+  /usr/venvs/<app>/bin/pserve /home/<app>/config.ini
+  ```
+  and observe the errors reported.
+- Install appropriate versions of conflicting packages running
+  ```shell script
+  /usr/venvs/<app>/bin/pip install ...
+  ```
+- Try to start again ...
+- When `waitress` will start without problems, stop it, revert `config.ini` and restart `gunicorn` via `supervisor`:
+  ```shell script
+  supervisorctl start <app>
+  ```
+- To make sure everything is deployed as always (and to record the new package versions), deploy via `fab` again
+  and commit and push the updated `requirements.txt`.
+
 
 ### Deploying new data
 

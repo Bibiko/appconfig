@@ -1,7 +1,5 @@
 # test_tasks.py
 
-from __future__ import unicode_literals
-
 from appconfig import tasks
 
 
