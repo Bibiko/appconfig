@@ -1,7 +1,5 @@
 # test_deployment.py
 
-from __future__ import unicode_literals
-
 import argparse
 
 import pytest
@@ -55,6 +53,7 @@ def mocked_deployment(mocker):
 
 def test_deploy_public(mocker, config, mocked_deployment):
     mocker.patch('appconfig.tasks.APP', config['testapppublic'])
+    mocker.patch('appconfig.tasks.deployment.misc', mocker.Mock())
 
     with pytest.raises(FileNotFoundError):
         tasks.deploy('production')
@@ -64,6 +63,7 @@ def test_deploy_public(mocker, config, mocked_deployment):
 
 def test_deploy(mocker, config, mocked_deployment):
     mocker.patch('appconfig.tasks.APP', config['testapp'])
+    mocker.patch('appconfig.tasks.deployment.misc', mocker.Mock())
 
     with pytest.raises(FileNotFoundError):
         tasks.deploy('production')
