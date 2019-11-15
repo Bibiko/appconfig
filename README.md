@@ -47,6 +47,10 @@ $ fab -H vbox deploy:staging
 ```
 Answer the prompts `Recreate database?` and `Upgrade database?` in the negative.
 
+If you deployed production code, make sure to commit and push changes to the apps `requirements.txt`,
+to allow accurate assessment of the production environment.
+
+
 #### Troubleshooting
 
 Sometimes an app won't start properly after updating the code. By far the most common cause for this
