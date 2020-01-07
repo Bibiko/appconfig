@@ -51,7 +51,7 @@ uritemplate==3.0.0
 urllib3==1.22
 venusian==1.1.0
 -e git+https://github.com/clld/waab.git@9693da8887cf8498a47bc41250a2a048595f89f3#egg=waab
-waitress==1.1.0
+waitress==1.4.2
 webassets==0.12.1
 WebHelpers2==2.0
 WebOb==1.8.5

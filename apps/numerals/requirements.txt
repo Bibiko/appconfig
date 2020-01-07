@@ -6,6 +6,7 @@ bs4==0.0.1
 certifi==2018.4.16
 chardet==3.0.4
 clld==4.7.0
+clld-cognacy-plugin==0.2.0
 clld-glottologfamily-plugin==2.1.0
 clld-phylogeny-plugin==1.1.0
 clldmpg==3.2.0
@@ -27,7 +28,7 @@ Markdown==2.6.11
 MarkupSafe==1.0
 nameparser==0.5.6
 newick==0.9.2
--e git+https://github.com/clld/numerals.git@7aed58a4d8d10179783b6f9217790d10662ac85f#egg=numerals
+-e git+https://github.com/clld/numerals.git@1a39f2754a229a81b1353701fe0e1cd81baa35b3#egg=numerals
 paginate==0.5.6
 PasteDeploy==1.5.2
 plaster==1.0
@@ -61,7 +62,7 @@ Unidecode==1.0.22
 uritemplate==3.0.0
 urllib3==1.24.2
 venusian==1.1.0
-waitress==1.1.0
+waitress==1.4.2
 webassets==0.12.1
 WebHelpers2==2.0
 WebOb==1.8.5

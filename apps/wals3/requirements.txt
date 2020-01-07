@@ -51,7 +51,7 @@ translationstring==1.3
 uritemplate==3.0.0
 urllib3==1.24.2
 venusian==1.1.0
-waitress==1.1.0
+waitress==1.4.2
 -e git+https://github.com/clld/wals3.git@27ff4b9c5d123b980f7f2b7f38bb438edc1cd79e#egg=wals3
 webassets==0.12.1
 WebHelpers2==2.0
