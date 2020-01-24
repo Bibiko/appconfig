@@ -54,7 +54,7 @@ translationstring==1.3
 uritemplate==3.0.0
 urllib3==1.24.2
 venusian==1.1.0
-waitress==1.1.0
+waitress==1.4.2
 webassets==0.12.1
 WebHelpers2==2.0
 WebOb==1.8.5
@@ -63,3 +63,4 @@ yuicompressor==2.4.8
 zope.deprecation==4.3.0
 zope.interface==4.4.3
 zope.sqlalchemy==0.7.7
+

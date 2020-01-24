@@ -1,5 +1,5 @@
 alembic==0.9.9
--e git+https://github.com/clld/amsd.git@5f8c0c7b564933a930ce3f5467c2e89b9446bde9#egg=amsd
+-e git+https://github.com/clld/amsd.git@3f5eb03c634c179d594d60011ae679565a59b108#egg=amsd
 attrs==18.1.0
 Babel==2.6.0
 certifi==2018.4.16
@@ -50,7 +50,7 @@ translationstring==1.3
 uritemplate==3.0.0
 urllib3==1.23
 venusian==1.1.0
-waitress==1.1.0
+waitress==1.4.2
 webassets==0.12.1
 WebHelpers2==2.0
 WebOb==1.8.5
