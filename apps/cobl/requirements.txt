@@ -1,7 +1,7 @@
 attrs==18.2.0
 bibtexparser==0.6.2
 clldutils==2.4.1
--e git+https://github.com/shh-dlce/CoBL-public.git@f7dedee7c4e521efa8598b9f6ad358d3dd22887f#egg=cobl
+-e git+https://github.com/shh-dlce/CoBL-public.git@ab868a21b396cf4b4cb7fe5b5f053c88152b4344#egg=cobl
 colorlog==3.1.4
 configparser==3.5.0
 csvw==1.4.0
@@ -30,7 +30,7 @@ tabulate==0.7.7
 translationstring==1.3
 uritemplate==3.0.0
 venusian==1.1.0
-waitress==1.1.0
+waitress==1.4.3
 WebOb==1.8.2
 WTForms==2.1
 zope.deprecation==4.3.0

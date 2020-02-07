@@ -59,7 +59,7 @@ Unidecode==1.0.22
 uritemplate==3.0.0
 urllib3==1.25.6
 venusian==3.0.0
-waitress==1.4.2
+waitress==1.4.3
 webassets==0.12.1
 WebHelpers2==2.0
 WebOb==1.8.5
