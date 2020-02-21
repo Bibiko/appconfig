@@ -4,6 +4,7 @@ from tempfile import NamedTemporaryFile
 import gzip
 import re
 import json
+import zipfile
 from itertools import groupby
 from collections import Counter
 
@@ -148,12 +149,15 @@ def load_soundfile_catalog(app, catalog):
     """
     load available soundfiles into the db
     Usage:
-    fab load_soundfile_catalog:production,/path/to/soundcomparisons-data/soundfiles/catalog.json
+    fab load_soundfile_catalog:production,/path/to/soundcomparisons-data/soundfiles/catalog.json.zip
 
-    :param catalog: Path to soundfiles/catalog.json in a clone of the repos clld/soundcomparisons-data
+    :param catalog: Path to soundfiles/catalog.json.zip in a clone of the repos clld/soundcomparisons-data
     """
-    with pathlib.Path(catalog).open() as fp:
-        cat = json.load(fp)
+    with zipfile.ZipFile(catalog, 'r') as z:
+        for filename in z.namelist():
+            with z.open(filename) as f:
+                cat = json.loads(f.read().decode('utf-8'), encoding='utf-8')
+            break
 
     # Restructure catalog into {"stem":["uid", [".EXT1", ".EXT2", ...]]}
     catalog = {}
@@ -227,8 +231,9 @@ def load_soundfile_catalog(app, catalog):
 
         uwords = Counter()
         rems = Counter()
-        lex_pattern = re.compile('_lex(?P<n>[0-9])$')
-        pron_pattern = re.compile('_pron(?P<n>[0-9])$')
+        lex_pattern = re.compile('_lex(?P<n>[0-9]+)$')
+        pron_pattern = re.compile('_pron(?P<n>[0-9]+)$')
+        lex_pron_pattern = re.compile('_lex(?P<m>[0-9]+)_pron(?P<n>[0-9]+)$')
         for key in sorted(ckeys):  # Loop over soundfiles which haven't been assigned yet.
             for fpp in lkeys:
                 if key.startswith(fpp):
@@ -248,15 +253,20 @@ def load_soundfile_catalog(app, catalog):
             lex, pron = 0, 0  # Default for dummy transcriptions.
             rem = key[len(fpp) + len(sfwit):]
             if rem:  # Check unmatched suffixes of the soundfile stem.
-                m = lex_pattern.match(rem)
+                m = lex_pron_pattern.match(rem)
                 if m:
-                    lex = int(m.group('n'))
-                m = pron_pattern.match(rem)
-                if m:
+                    lex = int(m.group('m'))
                     pron = int(m.group('n'))
+                else:
+                    m = lex_pattern.match(rem)
+                    if m:
+                        lex = int(m.group('n'))
+                    m = pron_pattern.match(rem)
+                    if m:
+                        pron = int(m.group('n'))
                 if not (lex or pron):
                     rems.update([rem])
-                    continue  # The suffix didn't match the lex or pron pattern.
+                    # continue  # The suffix didn't match the lex or pron pattern.
 
             ixe, ixm = words[sfwit]
             write_row(tbl, languages[fpp], ixe, ixm, pron, lex, urls_from_catalog(key))
