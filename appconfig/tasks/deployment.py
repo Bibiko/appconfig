@@ -117,6 +117,9 @@ def check(app):
 
 @task_app_from_environment
 def upgrade(app, **packages):
+    """
+    usage: fab upgrade:production,waitress=1.4.3
+    """
     with python.virtualenv(str(app.venv_dir)):
         require.python.packages(
             ['{0}=={1}'.format(*pkg) for pkg in packages.items()], use_sudo=True)
