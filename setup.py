@@ -26,7 +26,7 @@ setup(
         'Jinja2',
         'pytz',
         'pycdstar>=0.4.1',
-        'cdstarcat>=0.6.2',
+        'cdstarcat>=1.2',
     ],
     extras_require={
         'dev': ['flake8'],
