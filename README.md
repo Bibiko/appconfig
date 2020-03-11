@@ -109,7 +109,17 @@ To move an app from one server to another, follow these steps:
    fab deploy:prodcution
    ```
    answering `y` to recreate the database.
-6. Temporarily re-set the deployment target to the old host and uninstall via `fab uninstall:production`.
+6. Temporarily re-set the deployment target to the old host and uninstall
+   ```
+   git checkout ../apps.ini
+   fab uninstall:production
+   ```
+7. Set app's deployment target in `apps.ini`, review changes, commit and push:
+   ```
+   git diff
+   git commit -a -m"moved app"
+   git push origin
+   ```
 
 
 ## Renewing certificates
