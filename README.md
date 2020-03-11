@@ -107,7 +107,7 @@ To move an app from one server to another, follow these steps:
 5. Update the DNS entry for the app. (This is required in order to be able to retrieve a certificate from letsencrypt upon deploy.)
 6. Deploy the app running
    ```
-   fab deploy:prodcution
+   fab deploy:production
    ```
    answering `y` to recreate the database.
 7. Temporarily re-set the deployment target to the old host and uninstall
