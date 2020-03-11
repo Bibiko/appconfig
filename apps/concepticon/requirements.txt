@@ -6,16 +6,19 @@ bibtexparser==0.6.2
 cdstarcat==0.2.1
 certifi==2019.9.11
 chardet==3.0.4
-clld==5.0.1
+cldfcatalog==1.3.0
+clld==6.0.0
 clldmpg==3.4.0
-clldutils==3.3.0
+clldutils==3.5.0
 colander==1.7.0
-colorlog==4.0.2
--e git+https://github.com/clld/concepticon.git@911f06253688226f1c57e0ddfe8c5391f2c9f381#egg=concepticon
+colorlog==4.1.0
+-e git+https://github.com/clld/concepticon.git@7dd47469b6bba79e316ba2c6275e00d774073e1e#egg=concepticon
 configparser==3.5.0
-csvw==1.6.0
+csvw==1.7.0
 docopt==0.6.2
 feedparser==5.2.1
+gitdb==4.0.2
+GitPython==3.1.0
 gunicorn==19.7.1
 hupper==1.9
 idna==2.8
@@ -36,7 +39,7 @@ purl==1.5
 pybtex==0.22.2
 pycdstar==0.3.2
 pycldf==1.8.2
-pyconcepticon==1.4.0
+pyconcepticon==2.6.0
 pyparsing==2.4.4
 pyramid==1.10.4
 pyramid-exclog==1.0
@@ -50,13 +53,15 @@ rdflib==4.2.2
 repoze.lru==0.7
 requests==2.22.0
 rfc3986==1.3.2
-six==1.13.0
+six==1.14.0
+smmap==3.0.1
 SQLAlchemy==1.3.10
-tabulate==0.8.5
+tabulate==0.8.6
+termcolor==1.1.0
 transaction==2.4.0
 translationstring==1.3
 Unidecode==1.0.22
-uritemplate==3.0.0
+uritemplate==3.0.1
 urllib3==1.25.6
 venusian==3.0.0
 waitress==1.4.3

@@ -4,10 +4,13 @@ from fabtools import require
 from appconfig import APPS
 from appconfig.config import App
 
+from appconfig import util
+from fabtools.system import distrib_codename
+
 
 def require_certbot():
     require.deb.package('software-properties-common')
-    require.deb.ppa('ppa:certbot/certbot')
+    util.ppa('ppa:certbot/certbot', lsb_codename=distrib_codename())
     require.deb.package('python-certbot-nginx')
 
 

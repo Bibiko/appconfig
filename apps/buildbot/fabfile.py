@@ -1,6 +1,6 @@
 import pathlib
 
-from fabric.api import env, sudo
+from fabric.api import env, sudo, shell_env
 from fabtools import require, system, python
 from fabtools.require import git
 
@@ -20,12 +20,15 @@ def deploy(app):
     require.deb.packages(app.require_deb + ["libcairo2", "python3-venv"])
     require.users.user(app.name, create_home=True, shell="/bin/bash")
 
-    require_nginx(dict(app=app))
+    with shell_env(SYSTEMD_PAGER=''):
+        require.nginx.server()
 
     # Test and production instances are publicly accessible over HTTPS.
     letsencrypt.require_certbot()
     letsencrypt.require_cert(env.host)
     letsencrypt.require_cert(app)
+
+    require_nginx(dict(app=app))
 
     git.working_copy(
         "https://github.com/cldf/cldf-buildbot.git",
@@ -102,5 +105,6 @@ def deploy(app):
         )
 
     systemd.enable(app, pathlib.Path(__file__).parent / "systemd")
+    sudo("systemctl daemon-reload", warn_only=True)
     sudo("systemctl start buildbot-master", warn_only=True)
     sudo("systemctl start buildbot-worker", warn_only=True)
