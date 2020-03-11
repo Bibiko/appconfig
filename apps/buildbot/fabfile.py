@@ -4,10 +4,10 @@ from fabric.api import env, sudo
 from fabtools import require, system, python
 from fabtools.require import git
 
+from appconfig import systemd
+from appconfig.tasks import letsencrypt
 from appconfig.tasks import task_app_from_environment, init
 from appconfig.tasks.deployment import require_venv, require_nginx
-from appconfig import systemd
-
 
 init()
 
@@ -23,9 +23,9 @@ def deploy(app):
     require_nginx(dict(app=app))
 
     # Test and production instances are publicly accessible over HTTPS.
-    #    letsencrypt.require_certbot()
-    #    letsencrypt.require_cert(env.host)
-    #    letsencrypt.require_cert(app)
+    letsencrypt.require_certbot()
+    letsencrypt.require_cert(env.host)
+    letsencrypt.require_cert(app)
 
     git.working_copy(
         "https://github.com/cldf/cldf-buildbot.git",
@@ -101,6 +101,6 @@ def deploy(app):
             user="buildbot",
         )
 
-    systemd.enable(app, pathlib.Path(__file__).parent / 'systemd')
+    systemd.enable(app, pathlib.Path(__file__).parent / "systemd")
     sudo("systemctl start buildbot-master", warn_only=True)
     sudo("systemctl start buildbot-worker", warn_only=True)
