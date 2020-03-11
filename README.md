@@ -90,6 +90,28 @@ For wholesale replacemement, confirm `Recreate database?`.
 Note: Deploying new data implies deploying new code.
 
 
+## Moving an app
+
+To move an app from one server to another, follow these steps:
+
+1. Navigate to the app's config directory:
+   ```
+   cd apps/<app>
+   ```
+2. Retrieve the production database:
+   ```
+   fab load_db:production
+   ```
+3. Update the app's deployment target by editing the `production` option in the `[<app>]` section of `apps.ini`.
+4. Update the DNS entry for the app. (This is required in order to be able to retrieve a certificate from letsencrypt upon deploy.)
+5. Deploy the app running
+   ```
+   fab deploy:prodcution
+   ```
+   answering `y` to recreate the database.
+6. Temporarily re-set the deployment target to the old host and uninstall via `fab uninstall:production`.
+
+
 ## Renewing certificates
 
 We use certificates from [letsencrypt](https://letsencrypt.org/) to secure our
