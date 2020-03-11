@@ -67,7 +67,7 @@ def deploy(app):
     require.files.file(
         path=str(app.home_dir / "master" / "settings.py"),
         owner="buildbot",
-        contents="HOST='141.5.108.108'",
+        contents="HOST='buildbot.clld.org'",
         use_sudo=True,
         mode="777",
     )
@@ -88,7 +88,7 @@ def deploy(app):
         user="buildbot",
     )
 
-    sudo("systemctl stop buildbot", warn_only=True)
+    sudo("systemctl stop buildbot-master", warn_only=True)
     sudo("systemctl stop buildbot-worker", warn_only=True)
 
     with python.virtualenv(str(app.venv_dir)):
@@ -102,5 +102,5 @@ def deploy(app):
         )
 
     systemd.enable(app, pathlib.Path(__file__).parent / 'systemd')
-    sudo("systemctl start buildbot", warn_only=True)
+    sudo("systemctl start buildbot-master", warn_only=True)
     sudo("systemctl start buildbot-worker", warn_only=True)
