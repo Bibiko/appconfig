@@ -102,19 +102,20 @@ To move an app from one server to another, follow these steps:
    ```
    fab load_db:production
    ```
-3. Update the app's deployment target by editing the `production` option in the `[<app>]` section of `apps.ini`.
-4. Update the DNS entry for the app. (This is required in order to be able to retrieve a certificate from letsencrypt upon deploy.)
-5. Deploy the app running
+3. Verify that the database has been received correctly by running the app tests locally.
+4. Update the app's deployment target by editing the `production` option in the `[<app>]` section of `apps.ini`.
+5. Update the DNS entry for the app. (This is required in order to be able to retrieve a certificate from letsencrypt upon deploy.)
+6. Deploy the app running
    ```
    fab deploy:prodcution
    ```
    answering `y` to recreate the database.
-6. Temporarily re-set the deployment target to the old host and uninstall
+7. Temporarily re-set the deployment target to the old host and uninstall
    ```
    git checkout ../apps.ini
    fab uninstall:production
    ```
-7. Set app's deployment target in `apps.ini`, review changes, commit and push:
+8. Set app's deployment target in `apps.ini`, review changes, commit and push:
    ```
    git diff
    git commit -a -m"moved app"
