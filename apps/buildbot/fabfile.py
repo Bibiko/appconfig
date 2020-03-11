@@ -1,9 +1,13 @@
+import pathlib
+
 from fabric.api import env, sudo
 from fabtools import require, system, python
 from fabtools.require import git
 
 from appconfig.tasks import task_app_from_environment, init
-from appconfig.tasks.deployment import require_venv
+from appconfig.tasks.deployment import require_venv, require_nginx
+from appconfig import systemd
+
 
 init()
 
@@ -15,6 +19,8 @@ def deploy(app):
 
     require.deb.packages(app.require_deb + ["libcairo2", "python3-venv"])
     require.users.user(app.name, create_home=True, shell="/bin/bash")
+
+    require_nginx(dict(app=app))
 
     # Test and production instances are publicly accessible over HTTPS.
     #    letsencrypt.require_certbot()
@@ -82,10 +88,11 @@ def deploy(app):
         user="buildbot",
     )
 
+    sudo("systemctl stop buildbot", warn_only=True)
+    sudo("systemctl stop buildbot-worker", warn_only=True)
+
     with python.virtualenv(str(app.venv_dir)):
-        sudo("buildbot-worker stop " + str(app.home_dir / "worker"), user="buildbot")
         sudo("buildbot create-master -c config.py " + str(app.home_dir / "master"), user="buildbot")
-        sudo("buildbot start " + str(app.home_dir / "master"), user="buildbot", warn_only=True)
         sudo(
             "buildbot-worker create-worker "
             + str(app.home_dir / "worker")
@@ -93,14 +100,7 @@ def deploy(app):
             + "localhost worker pass",
             user="buildbot",
         )
-        sudo(
-            "buildbot-worker start " + str(app.home_dir / "worker"), user="buildbot", warn_only=True
-        )
 
-
-#   require_nginx(dict(app=app))
-
-# start.execute_inner(app)
-# check(app)
-#   if env.environment == 'production':
-#       systemd.enable(app, pathlib.Path(os.getcwd()) / 'systemd')
+    systemd.enable(app, pathlib.Path(__file__).parent / 'systemd')
+    sudo("systemctl start buildbot", warn_only=True)
+    sudo("systemctl start buildbot-worker", warn_only=True)

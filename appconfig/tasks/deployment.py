@@ -72,12 +72,15 @@ def sudo_upload_template(template,
     if kwargs:
         context = (context or {}).copy()
         context.update(kwargs)
+    tdir = TEMPLATE_DIR
+    if TEMPLATE_DIR.joinpath(context['app'].id, template).exists():
+        tdir = TEMPLATE_DIR / context['app']
     files.upload_template(
         template,
         dest,
         context,
         use_jinja=True,
-        template_dir=str(TEMPLATE_DIR),
+        template_dir=str(tdir),
         use_sudo=True,
         backup=False,
         mode=mode,
