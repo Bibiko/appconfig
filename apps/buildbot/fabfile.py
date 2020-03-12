@@ -63,7 +63,7 @@ def deploy(app):
         path=str(app.home_dir / "cldf-buildbot"),
         user=app.name,
         use_sudo=True,
-        update=False,
+        update=True,
     )
     for name, url in CATALOGS.items():
         git.working_copy(
