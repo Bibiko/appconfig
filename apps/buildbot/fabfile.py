@@ -87,7 +87,7 @@ def deploy(app):
     require.files.file(
         path=str(app.home_dir / "master" / "settings.py"),
         owner=app.name,
-        contents="URL='https://{}'".format(app.domain),
+        contents="URL='https://{}/'".format(app.domain),
         use_sudo=True,
         mode="777",
     )
