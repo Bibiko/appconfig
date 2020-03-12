@@ -133,6 +133,10 @@ class App(argparse.Namespace):
         'varnish_site',
     ], pathlib.PurePosixPath))
 
+    _fields.update({
+        'extra': lambda s: eval(s or '{}'),
+    })
+
     def __init__(self, **kwargs):
         kw = self._fields.copy()
         for k, f in list(kw.items()):

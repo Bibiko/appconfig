@@ -21,6 +21,10 @@ def test_config_hostnames(config):
     assert config.hostnames == ['vbox', 'spam.eggs']
 
 
+def test_config_extra(app):
+    assert app.extra['key'] == 5
+
+
 def test_app():
     app = config.App(**{k: '1' for k in config.App._fields})
 

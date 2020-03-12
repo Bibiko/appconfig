@@ -29,16 +29,20 @@ start = functools.partial(_ctl, 'start')
 stop = functools.partial(_ctl, 'stop')
 
 
-@task_app_from_environment
-def catalogversions(app, **kw):
-    """
-    usage: fab catalogversions:production,glottolog=v4.1,concepticon=v2.3,clts=v1.4.1
-    """
+def require_catalogversions(app, **kw):
     for name, url in CATALOGS.items():
         if name in kw:
             with cd(str(app.home_dir / url.split('/')[-1])):
                 sudo('git fetch origin', user=app.name)
                 sudo('git checkout {}'.format(kw[name]), user=app.name)
+
+
+@task_app_from_environment
+def catalogversions(app, **kw):
+    """
+    usage: fab catalogversions:production,glottolog=v4.1,concepticon=v2.3,clts=v1.4.1
+    """
+    require_catalogversions(app, **kw)
 
 
 @task_app_from_environment
@@ -73,8 +77,7 @@ def deploy(app):
             use_sudo=True,
             update=False,
         )
-
-    # fabtools.git.checkout() for versions
+    require_catalogversions(app, **app.extra)
 
     require_venv(
         app.venv_dir, requirements=str(app.home_dir / "cldf-buildbot" / "requirements.txt"))
