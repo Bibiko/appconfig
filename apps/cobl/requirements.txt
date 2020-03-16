@@ -1,7 +1,7 @@
 attrs==18.2.0
 bibtexparser==0.6.2
 clldutils==2.4.1
--e git+https://github.com/shh-dlce/CoBL-public.git@ab868a21b396cf4b4cb7fe5b5f053c88152b4344#egg=cobl
+-e git+https://github.com/shh-dlce/CoBL-public.git@30d809d49120938da73c45b778f54a5f144ced35#egg=cobl
 colorlog==3.1.4
 configparser==3.5.0
 csvw==1.4.0
