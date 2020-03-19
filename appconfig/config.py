@@ -114,6 +114,7 @@ class App(argparse.Namespace):
         'timeout': int,
         'deploy_duration': int,
         'require_deb_xenial': getwords,
+        'require_deb_bionic': getwords,
         'require_deb': getwords,
         'require_pip': getwords,
         'pg_collkey': getboolean,
