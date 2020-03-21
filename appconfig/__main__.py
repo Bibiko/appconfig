@@ -1,70 +1,43 @@
-# __main__.py - command line interface
+import sys
+import contextlib
 
-import argparse
-from urllib.request import urlopen, HTTPError
+from clldutils.clilib import register_subcommands, get_parser_and_subparsers, ParserError
+from clldutils.loglib import Logging
 
+import appconfig.commands
 from . import APPS
 
 
-def ls(args):
-    """
-    List registered apps.
+def main(args=None, catch_all=False, parsed_args=None, log=None):
+    parser, subparsers = get_parser_and_subparsers('appconfig')
+    register_subcommands(subparsers, appconfig.commands)
 
-    -p to sort by port
-    """
-    table = []
-    for a in APPS.values():
-        table.append((
-            a.name,
-            'http://{0}'.format(a.domain),
-            a.production,
-            '{0}'.format(a.port),
-            a.stack,
-            '{0}'.format(a.public)))
-        if a.test:
-            table.append((
-                '{0} [test]'.format(a.name),
-                'http://{0}/{1}'.format(a.test, a.name),
-                a.test,
-                '{0}'.format(a.port),
-                a.stack,
-                '{0}'.format(False)))
-    cwidth = [2] + [max(map(len, c)) for c in zip(*table)]
-    tmpl = ' '.join('{:%d}' % w for w in cwidth)
-    print(tmpl.format('#', 'id', 'url', 'server', 'port', 'stack', 'public'))
-    print(tmpl.format(*('-' * w for w in cwidth)))
+    args = parsed_args or parser.parse_args(args=args)
 
-    if args and '-p' in args:
-        sortkey = lambda t: t[3]
-    else:
-        sortkey = lambda t: (t[2], t[0])
+    if not hasattr(args, "main"):
+        parser.print_help()
+        return 1
 
-    for i, r in enumerate(sorted(table, key=sortkey)):
-        r = ['{0}'.format(i + 1)] + list(r)
-        print(tmpl.format(*r))
+    args.apps = APPS
+
+    with contextlib.ExitStack() as stack:
+        if not log:  # pragma: no cover
+            stack.enter_context(Logging(args.log, level=args.log_level))
+        else:
+            args.log = log
+        try:
+            return args.main(args) or 0
+        except KeyboardInterrupt:  # pragma: no cover
+            return 0
+        except ParserError as e:
+            print(e)
+            return main([args._command, '-h'])
+        except Exception as e:  # pragma: no cover
+            if catch_all:
+                print(e)
+                return 1
+            raise
 
 
-def test_error(appid):
-    """Test the error reporting of an app by requesting its /_raise URL."""
-    raise_url = 'http://{0.domain}/_raise'.format(APPS[appid])
-    try:
-        u = urlopen(raise_url)
-    except HTTPError as e:
-        assert e.code == 500
-    else:
-        u.close()
-        raise RuntimeError('url %r did not raise' % raise_url)
-
-
-def main():  # pragma: no cover
-    parser = argparse.ArgumentParser(prog='appconfig', description='')
-    parser.add_argument('command', choices=['ls', 'test_error'])
-    parser.add_argument('args', nargs=argparse.REMAINDER)
-    args = parser.parse_args()
-
-    if args.command == 'ls':
-        ls(args.args)
-    elif args.command == 'test_error':
-        test_error(args.args[0])
-    else:
-        raise NotImplementedError
+if __name__ == '__main__':  # pragma: no cover
+    sys.exit(main() or 0)
