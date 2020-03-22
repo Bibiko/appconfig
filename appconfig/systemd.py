@@ -45,9 +45,10 @@ def enable(app, d):
 
             enable = 'service'
             for name in ['service', 'timer']:
-                if name == 'timer':
-                    enable = name
                 p = unit / name
+
+                if p.exists() and name == 'timer':
+                    enable = name
                 if p.exists():
                     upload_template(
                         p, '/etc/systemd/system/{0}-{1}.{2}'.format(app.name, unit.name, name), ctx)

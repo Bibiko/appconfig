@@ -114,6 +114,7 @@ class App(argparse.Namespace):
         'timeout': int,
         'deploy_duration': int,
         'require_deb_xenial': getwords,
+        'require_deb_bionic': getwords,
         'require_deb': getwords,
         'require_pip': getwords,
         'pg_collkey': getboolean,
@@ -132,6 +133,10 @@ class App(argparse.Namespace):
         'nginx_default_site', 'nginx_site', 'nginx_location', 'nginx_htpasswd',
         'varnish_site',
     ], pathlib.PurePosixPath))
+
+    _fields.update({
+        'extra': lambda s: eval(s or '{}'),
+    })
 
     def __init__(self, **kwargs):
         kw = self._fields.copy()

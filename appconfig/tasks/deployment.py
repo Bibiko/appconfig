@@ -72,12 +72,15 @@ def sudo_upload_template(template,
     if kwargs:
         context = (context or {}).copy()
         context.update(kwargs)
+    tdir = TEMPLATE_DIR
+    if context and ('app' in context) and TEMPLATE_DIR.joinpath(context['app'].name, template).exists():
+        tdir = TEMPLATE_DIR / context['app'].name
     files.upload_template(
         template,
         dest,
         context,
         use_jinja=True,
-        template_dir=str(TEMPLATE_DIR),
+        template_dir=str(tdir),
         use_sudo=True,
         backup=False,
         mode=mode,
@@ -195,7 +198,7 @@ def deploy(app, with_blog=None, with_alembic=False):
     """deploy the app"""
     assert system.distrib_id() == 'Ubuntu'
     lsb_codename = system.distrib_codename()
-    if lsb_codename != 'xenial':
+    if lsb_codename not in ['xenial', 'bionic']:
         raise ValueError('unsupported platform: %s' % lsb_codename)
 
     # See whether the local appconfig clone is up-to-date with the remot master:
@@ -364,7 +367,8 @@ def require_postgres(app, drop=False):
 
     with shell_env(SYSTEMD_PAGER=''):
         require.postgres.server()
-        require.postgres.user(app.name, password=app.name)
+        require.postgres.user(app.name, password=app.name,
+                encrypted_password=True)
         require.postgres.database(app.name, owner=app.name)
 
     if app.pg_unaccent:

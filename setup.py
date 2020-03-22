@@ -1,5 +1,3 @@
-# setup.py
-
 from setuptools import setup, find_packages
 
 
@@ -19,7 +17,7 @@ setup(
     zip_safe=False,
     install_requires=[
         'attrs>=18.1.0',
-        'clldutils',
+        'clldutils>=3.5',
         'Fabric3>=1.11',
         'fabtools-python>=0.19.7',
         'python-dateutil',

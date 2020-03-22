@@ -1,28 +1,27 @@
-from urllib.request import HTTPError
+from urllib.error import HTTPError
 
 import pytest
 
+from appconfig.__main__ import main
+
 
 def test_ls(capsys):
-    from appconfig.__main__ import ls
-
-    ls([])
+    main(['ls'])
     out, err = capsys.readouterr()
     assert 'wals3' in out
 
-    ls(['-p'])
+    main(['ls', '-p'])
     out, err = capsys.readouterr()
     assert 'wals3' in out
 
 
 def test_error(mocker):
-    from appconfig.__main__ import test_error
-
-    mocker.patch('appconfig.__main__.urlopen')
+    mocker.patch('appconfig.commands.test_error.urlopen')
 
     with pytest.raises(RuntimeError):
-        test_error('wals3')
+        main(['test_error', 'wals3'])
 
     mocker.patch(
-        'appconfig.__main__.urlopen', mocker.Mock(side_effect=HTTPError('', 500, '', {}, None)))
-    test_error('wals3')
+        'appconfig.commands.test_error.urlopen',
+        mocker.Mock(side_effect=HTTPError('', 500, '', {}, None)))
+    main(['test_error', 'wals3'])

@@ -3,14 +3,14 @@ attrs==19.1.0
 Babel==2.5.3
 certifi==2017.11.5
 chardet==3.0.4
-clld==4.7.0
-clldmpg==3.3.1
-clldutils==2.8.0
+clld==6.0.0
+clldmpg==3.5.0
+clldutils==3.5.0
 colander==1.7.0
 colorlog==3.1.0
 configparser==3.5.0
 csvw==1.5.5
--e git+https://github.com/clld/ewave.git@533eedb677c146adce3181145e021f8016842cdb#egg=ewave
+-e git+https://github.com/clld/ewave.git@9194f2ee6c729b29b05f12d0db47e43d96cc9ca2#egg=ewave
 feedparser==5.2.1
 gunicorn==19.7.1
 hupper==1.6.1
