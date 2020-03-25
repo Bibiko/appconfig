@@ -25,7 +25,7 @@ Markdown==3.2.1
 MarkupSafe==1.1.1
 nameparser==1.0.6
 newick==1.0.0
--e git+https://github.com/clld/nts.git@775888458d5f57d752564b0ab18dda9eb0cff704#egg=nts
+-e git+https://github.com/clld/nts.git@9e8bd900d94044eff75ff2a0989b6154f0f4325c#egg=nts
 paginate==0.5.6
 PasteDeploy==2.1.0
 plaster==1.0
