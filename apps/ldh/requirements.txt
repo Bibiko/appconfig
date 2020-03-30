@@ -1,4 +1,4 @@
-alembic==1.4.1
+alembic==1.4.2
 appdirs==1.4.3
 attrs==19.3.0
 Babel==2.8.0
@@ -7,7 +7,7 @@ bs4==0.0.1
 certifi==2019.11.28
 chardet==3.0.4
 cldfcatalog==1.3.0
-clld==6.0.0
+clld==6.0.1
 clld-glottologfamily-plugin==3.1.0
 clldmpg==3.5.0
 clldutils==3.5.0
@@ -22,7 +22,7 @@ idna==2.9
 iso8601==0.1.12
 isodate==0.6.0
 latexcodec==2.0.0
--e git+https://github.com/clld/ldh.git@f46ef2a6ba449f185326d99bef4f976a97072f71#egg=ldh
+-e git+https://github.com/clld/ldh.git@9950745dd59aa1b4ab67827f48414fd5eabe48e4#egg=ldh
 Mako==1.1.2
 Markdown==3.2.1
 MarkupSafe==1.1.1
@@ -46,15 +46,15 @@ pyramid-tm==2.4
 python-dateutil==2.8.1
 python-editor==1.0.4
 pytz==2019.3
-PyYAML==5.3
+PyYAML==5.3.1
 rdflib==4.2.2
 requests==2.23.0
 rfc3986==1.3.2
 six==1.14.0
 smmap==3.0.1
 soupsieve==2.0
-SQLAlchemy==1.3.14
-tabulate==0.8.6
+SQLAlchemy==1.3.15
+tabulate==0.8.7
 termcolor==1.1.0
 tqdm==4.43.0
 transaction==3.0.0
@@ -71,5 +71,5 @@ Whoosh==2.7.4
 xlwt==1.3.0
 yuicompressor==2.4.8
 zope.deprecation==4.4.0
-zope.interface==4.7.2
+zope.interface==5.0.1
 zope.sqlalchemy==1.3
