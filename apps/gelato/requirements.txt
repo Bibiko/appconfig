@@ -1,17 +1,17 @@
-alembic==1.4.1
+alembic==1.4.2
 appdirs==1.4.3
 attrs==19.3.0
 Babel==2.8.0
 certifi==2019.11.28
 chardet==3.0.4
 cldfcatalog==1.3.0
-clld==6.0.0
+clld==6.0.1
 clldmpg==3.5.0
 clldutils==3.5.0
 colander==1.7.0
 colorlog==4.1.0
 csvw==1.7.0
--e git+https://github.com/clld/gelato.git@29c0053cf4dd2f6140cbb743baad9c43af78683f#egg=gelato
+-e git+https://github.com/clld/gelato.git@708e78bbd677228f7f3380a2658aee00e5a9c8c1#egg=gelato
 gitdb==4.0.2
 GitPython==3.1.0
 gunicorn==19.10.0
@@ -34,7 +34,7 @@ purl==1.5
 pybtex==0.22.2
 pycldf==1.14.1
 pycountry==19.8.18
-pyglottolog==3.0.0
+pyglottolog==3.1.0
 pyparsing==2.4.6
 pyramid==1.10.4
 pyramid-exclog==1.0
@@ -43,16 +43,16 @@ pyramid-tm==2.4
 python-dateutil==2.8.1
 python-editor==1.0.4
 pytz==2019.3
-PyYAML==5.3
+PyYAML==5.3.1
 rdflib==4.2.2
 requests==2.23.0
 rfc3986==1.3.2
 six==1.14.0
 smmap==3.0.1
-SQLAlchemy==1.3.14
-tabulate==0.8.6
+SQLAlchemy==1.3.15
+tabulate==0.8.7
 termcolor==1.1.0
-tqdm==4.43.0
+tqdm==4.45.0
 transaction==3.0.0
 translationstring==1.3
 Unidecode==1.1.1
@@ -67,5 +67,5 @@ Whoosh==2.7.4
 xlwt==1.3.0
 yuicompressor==2.4.8
 zope.deprecation==4.4.0
-zope.interface==4.7.2
+zope.interface==5.0.2
 zope.sqlalchemy==1.3
