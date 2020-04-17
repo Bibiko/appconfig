@@ -16,7 +16,7 @@ csvw==1.7.0
 ete3==3.1.1
 gitdb==4.0.2
 GitPython==3.1.0
--e git+https://github.com/clld/grambank.git@ef98ad4b9cc2daad360e8ab6519c30eaae30a708#egg=grambank
+-e git+https://github.com/clld/grambank.git@097040aec12e32a1bfde7c1e862e3d1bfe52dbf0#egg=grambank
 gunicorn==19.10.0
 hupper==1.10.2
 idna==2.9
