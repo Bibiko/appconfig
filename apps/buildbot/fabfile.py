@@ -30,6 +30,11 @@ stop = functools.partial(_ctl, 'stop')
 
 
 def require_catalogversions(app, **kw):
+    for name in kw.keys():
+        if kw[name] != app.extra[name]:
+            print("Warning: {app_name} {update} catalog version differs from apps.ini, "
+                  "remember to update.".format(app_name=name, update=kw[name]))
+
     for name, url in CATALOGS.items():
         if name in kw:
             with cd(str(app.home_dir / url.split('/')[-1])):

@@ -17,7 +17,7 @@ csvw==1.6.0
 feedparser==5.2.1
 gitdb2==2.0.6
 GitPython==3.0.5
--e git+https://github.com/clld/glottolog3.git@659a3647a38ef01daa0441ec981a7b95308e776a#egg=glottolog3
+-e git+https://github.com/clld/glottolog3.git@e3cb24599e2fc6ae761de92cb9a2c873a2dcd86a#egg=glottolog3
 gunicorn==19.7.1
 hupper==1.9.1
 idna==2.8
