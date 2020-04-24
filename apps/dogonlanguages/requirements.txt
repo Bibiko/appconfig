@@ -11,7 +11,7 @@ clldutils==3.5.0
 colander==1.7.0
 colorlog==4.1.0
 csvw==1.7.0
--e git+https://github.com/clld/dogonlanguages.git@9b6ef14815166bfb95b09a1112778addf695e46b#egg=dogonlanguages
+-e git+https://github.com/clld/dogonlanguages.git@bcd6ea47988d6d335217277f06bd927a9382c7da#egg=dogonlanguages
 fuzzywuzzy==0.18.0
 gitdb==4.0.4
 GitPython==3.1.1
