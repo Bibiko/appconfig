@@ -9,7 +9,7 @@ certifi==2020.4.5.1
 chardet==3.0.4
 cldfbench==1.2.2
 cldfcatalog==1.3.0
--e git+https://github.com/clld/clics.git@6982fb728177c1a854c025f9f12bcedbe839720d#egg=clics
+-e git+https://github.com/clld/clics.git@e145b38a242eaf54cf67fac7355603f844f8c534#egg=clics
 clld==6.0.1
 clld-glottologfamily-plugin==3.1.0
 clldmpg==3.5.0
