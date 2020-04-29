@@ -306,8 +306,7 @@ def deploy(app, with_blog=None, with_alembic=False):
 
 
 def require_php(app):  # pragma: no cover
-    if not deb.is_installed('php-fpm'):
-        require.deb.packages(['php-fpm'])
+    require.deb.packages(['php-fpm'])
 
     php_version = run('ls /etc/php')
     sudo_upload_template(
