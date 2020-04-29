@@ -242,13 +242,12 @@ def deploy(app, with_blog=None, with_alembic=False):
             user=app.name)
         require_bower(app, d=app.home_dir / app.name / 'site' / 'js')
         require_grunt(app, d=app.home_dir / app.name / 'site' / 'js')
-        require_php(app)
+        php_version = require_php(app)
         require_mysql(app)
 
         with shell_env(SYSTEMD_PAGER=''):
             require.nginx.server()
 
-        php_version = run('ls /etc/php')
         sudo_upload_template('nginx-php-fpm-app.conf', str(app.nginx_site),
             app=app, env=env, php_version=php_version)
         nginx.enable(app.name)
@@ -316,6 +315,7 @@ def require_php(app):  # pragma: no cover
     )
     sudo('systemctl restart php{0}-fpm.service'.format(php_version))
 
+    return php_version
 
 def require_mysql(app):  # pragma: no cover
     if not deb.is_installed('mariadb-server'):
