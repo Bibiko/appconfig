@@ -177,7 +177,8 @@ def uninstall(app):  # pragma: no cover
         if app.stack != 'soundcomparisons':
             sudo('dropdb --if-exists %s' % app.name, user='postgres')
         else:
-            path = '/etc/php/7.0/fpm/pool.d/www' + app.name + '.conf'
+            php_version = run('ls /etc/php')
+            path = '/etc/php/{0}/fpm/pool.d/www'.format(php_version) + app.name + '.conf'
 
             if exists(path):
                 files.remove(path, recursive=False, use_sudo=True)
@@ -198,7 +199,7 @@ def deploy(app, with_blog=None, with_alembic=False):
     """deploy the app"""
     assert system.distrib_id() == 'Ubuntu'
     lsb_codename = system.distrib_codename()
-    if lsb_codename not in ['xenial', 'bionic']:
+    if lsb_codename not in ['xenial', 'bionic', 'focal']:
         raise ValueError('unsupported platform: %s' % lsb_codename)
 
     # See whether the local appconfig clone is up-to-date with the remot master:
@@ -241,13 +242,14 @@ def deploy(app, with_blog=None, with_alembic=False):
             user=app.name)
         require_bower(app, d=app.home_dir / app.name / 'site' / 'js')
         require_grunt(app, d=app.home_dir / app.name / 'site' / 'js')
-        require_php(app)
+        php_version = require_php(app)
         require_mysql(app)
 
         with shell_env(SYSTEMD_PAGER=''):
             require.nginx.server()
 
-        sudo_upload_template('nginx-php-fpm-app.conf', str(app.nginx_site), app=app, env=env)
+        sudo_upload_template('nginx-php-fpm-app.conf', str(app.nginx_site),
+            app=app, env=env, php_version=php_version)
         nginx.enable(app.name)
         if env.environment == 'production':
             # We only enable systemd services when deploying to production, because we don't want
@@ -303,17 +305,17 @@ def deploy(app, with_blog=None, with_alembic=False):
 
 
 def require_php(app):  # pragma: no cover
-    require.deb.package('php-fpm')
-    sed('/etc/php/7.0/fpm/php.ini',
-        'variables_order = "GPCS"',
-        'variables_order = "EGPCS"', use_sudo=True)
+    require.deb.packages(['php-fpm'])
+
+    php_version = run('ls /etc/php')
     sudo_upload_template(
         'php-fpm-www.conf',
-        '/etc/php/7.0/fpm/pool.d/www{0}.conf'.format(app.name),
+        '/etc/php/{1}/fpm/pool.d/www{0}.conf'.format(app.name, php_version),
         app=app,
     )
-    sudo('systemctl restart php7.0-fpm.service')
+    sudo('systemctl restart php{0}-fpm.service'.format(php_version))
 
+    return php_version
 
 def require_mysql(app):  # pragma: no cover
     if not deb.is_installed('mariadb-server'):
@@ -329,8 +331,8 @@ def require_mysql(app):  # pragma: no cover
 def require_bower(app, d=None):
     d = d or app.static_dir
     if exists(str(d / 'bower.json')):
-        require.deb.packages(['npm', 'nodejs-legacy'])
-        sudo('npm install -g bower@1.8.4')
+        require.deb.packages(['npm', 'nodejs'])
+        sudo('npm install -g bower@1.8.8')
         with cd(str(d)):
             sudo('bower --allow-root install')
 
@@ -338,8 +340,8 @@ def require_bower(app, d=None):
 def require_grunt(app, d=None):
     d = d or app.static_dir
     if exists(str(d / 'Gruntfile.js')):
-        require.deb.packages(['npm', 'nodejs-legacy'])
-        sudo('npm install -g grunt-cli@1.2.0')
+        require.deb.packages(['npm', 'nodejs'])
+        sudo('npm install -g grunt-cli@1.3.2')
         with cd(str(d)):
             sudo('npm install')
             sudo('grunt')

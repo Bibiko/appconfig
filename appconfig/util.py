@@ -43,7 +43,7 @@ def ppa(name, auto_accept=True, keyserver=None, lsb_codename=None):
     source = "/etc/apt/sources.list.d/%(user)s-%(repo)s-%(distrib)s.list" % locals()
 
     if not is_file(source):
-        if system.distrib_codename() == "bionic":
+        if system.distrib_codename() in ["bionic", "focal"]:
             package("software-properties-common")
         else:
             package("python-software-properties")

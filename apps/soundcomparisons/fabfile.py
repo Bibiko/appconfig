@@ -8,7 +8,7 @@ import zipfile
 from itertools import groupby
 from collections import Counter
 
-from fabric.api import sudo, get
+from fabric.api import sudo, get, run
 from fabric.contrib.files import exists
 from fabtools import require
 from appconfig.tasks import *
@@ -45,7 +45,8 @@ def read_from_db(app, sql_):
 
 @task_app_from_environment
 def shutdown(app):
-    sudo('systemctl stop php7.0-fpm.service')
+    php_version = run('ls /etc/php')
+    sudo('systemctl stop php{0}-fpm.service'.format(php_version))
     upload_db_to_cdstar(app, dbname='v4')
 
 
@@ -141,7 +142,8 @@ CREATE OR REPLACE TABLE soundcomparisons.contributorimages (
 
     sudo('rm {0}'.format(remote_path))
 
-    sudo('systemctl restart php7.0-fpm.service')
+    php_version = run('ls /etc/php')
+    sudo('systemctl restart php{0}-fpm.service'.format(php_version))
 
 
 @task_app_from_environment
@@ -295,4 +297,6 @@ CREATE OR REPLACE TABLE soundcomparisons.soundfiles (
     #print(uwords)
     #print('suffixes ({0}):'.format(sum(rems.values())))
     #print(rems)
-    sudo('systemctl restart php7.0-fpm.service')
+
+    php_version = run('ls /etc/php')
+    sudo('systemctl restart php{0}-fpm.service'.format(php_version))
