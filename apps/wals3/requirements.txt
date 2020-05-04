@@ -50,7 +50,7 @@ uritemplate==3.0.1
 urllib3==1.25.9
 venusian==3.0.0
 waitress==1.4.3
--e git+https://github.com/clld/wals3.git@71131568c66e6feba9af30600a1b2dcaab0613fd#egg=wals3
+-e git+https://github.com/clld/wals3.git@3ada953aa96188af3e507446a62e81743041fb84#egg=wals3
 webassets==2.0
 WebHelpers2==2.0
 WebOb==1.8.6
