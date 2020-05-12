@@ -60,4 +60,3 @@ def add_bitstream(oid, fname):
     api = get_api()
     # Add the sql dump as latest bitstream ...
     rb.add(api, str(fname))
-    rb.expunge(api, keep=10)
