@@ -47,12 +47,12 @@ def read_from_db(app, sql_):
 def shutdown(app):
     php_version = run('ls /etc/php')
     sudo('systemctl stop php{0}-fpm.service'.format(php_version))
-    upload_db_to_cdstar(app, dbname='v4')
+    upload_db_to_cdstar(app)
 
 
 @task_app_from_environment
 def backup_to_cdstar(app):
-    upload_db_to_cdstar(app, dbname='v4')
+    upload_db_to_cdstar(app)
 
 
 #
